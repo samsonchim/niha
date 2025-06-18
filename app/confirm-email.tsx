@@ -1,5 +1,5 @@
 import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router'; // <-- use this instead of useNavigation
 import { useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -7,7 +7,7 @@ export default function ConfirmEmailScreen() {
   const [code, setCode] = useState(['', '', '', '', '']);
   const [error, setError] = useState('');
   const inputs = useRef<Array<TextInput | null>>([]);
-  const router = useRouter();
+  const router = useRouter(); // <-- useRouter here
 
   const handleChange = (text: string, idx: number) => {
     if (text.length > 1) text = text.slice(-1);
@@ -30,8 +30,7 @@ export default function ConfirmEmailScreen() {
       return;
     }
     setError('');
-    // Proceed to next step or screen
-    // router.push('/next-screen');
+    router.push('/choose-password'); // <-- navigate using expo-router
   };
 
   return (
@@ -72,18 +71,18 @@ export default function ConfirmEmailScreen() {
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {/* Confirm Button */}
-    <TouchableOpacity
-      style={[
-        styles.button,
-        code.some(digit => digit === '') ? styles.buttonDisabled : null,
-      ]}
-      onPress={handleConfirm}
-      disabled={code.some(digit => digit === '')}
-      accessibilityLabel="Confirm Email"
-    >
-      <Text style={styles.buttonText}>Confirm Email</Text>
-      <FontAwesome name="check-circle" size={18} color="#fff" style={styles.arrow} />
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.button,
+          code.some(digit => digit === '') ? styles.buttonDisabled : null,
+        ]}
+        onPress={handleConfirm}
+        disabled={code.some(digit => digit === '')}
+        accessibilityLabel="Confirm Email"
+      >
+        <Text style={styles.buttonText}>Confirm Email</Text>
+        <FontAwesome name="check-circle" size={18} color="#fff" style={styles.arrow} />
+      </TouchableOpacity>
       {/* Resend code */}
       <View style={styles.resendContainer}>
         <Text style={styles.resendText}>
