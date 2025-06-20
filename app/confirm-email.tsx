@@ -1,44 +1,16 @@
-import { FontAwesome } from '@expo/vector-icons';
-import { useRouter } from 'expo-router'; // <-- use this instead of useNavigation
-import { useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import LetterInEnvelope from '@/components/LetterInEnvelope';
+import { useRouter } from 'expo-router';
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 
 export default function ConfirmEmailScreen() {
-  const [code, setCode] = useState(['', '', '', '', '']);
-  const [error, setError] = useState('');
-  const inputs = useRef<Array<TextInput | null>>([]);
-  const router = useRouter(); // <-- useRouter here
-
-  const handleChange = (text: string, idx: number) => {
-    if (text.length > 1) text = text.slice(-1);
-    const newCode = [...code];
-    newCode[idx] = text;
-    setCode(newCode);
-
-    if (text && idx < 4) {
-      inputs.current[idx + 1]?.focus();
-    }
-    if (!text && idx > 0 && !newCode[idx]) {
-      inputs.current[idx - 1]?.focus();
-    }
-    setError('');
-  };
-
-  const handleConfirm = () => {
-    if (code.some(digit => digit === '')) {
-      setError('Please enter the complete code');
-      return;
-    }
-    setError('');
-    router.push('/choose-password'); // <-- navigate using expo-router
-  };
+  const router = useRouter();
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.select({ ios: 'padding', android: undefined })}
     >
-      {/* Niha Pay logo and text */}
+      {/* Logo */}
       <View style={styles.logoRow}>
         <Image
           source={require('@/assets/images/niha.png')}
@@ -47,49 +19,13 @@ export default function ConfirmEmailScreen() {
         />
         <Text style={styles.logoText}>Niha Pay</Text>
       </View>
-      {/* Confirm Email Title */}
-      <Text style={styles.title}>Confirm Email Address</Text>
-      {/* Code Inputs */}
-      <View style={styles.codeRow}>
-        {code.map((digit, idx) => (
-          <TextInput
-            key={idx}
-            ref={ref => (inputs.current[idx] = ref)}
-            style={[styles.codeInput, error && digit === '' ? styles.codeInputError : null]}
-            keyboardType="number-pad"
-            maxLength={1}
-            value={digit}
-            onChangeText={text => handleChange(text, idx)}
-            autoFocus={idx === 0}
-            returnKeyType="next"
-            placeholder=""
-            placeholderTextColor="#444"
-            textContentType="oneTimeCode"
-            importantForAutofill="yes"
-          />
-        ))}
-      </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {/* Confirm Button */}
-      <TouchableOpacity
-        style={[
-          styles.button,
-          code.some(digit => digit === '') ? styles.buttonDisabled : null,
-        ]}
-        onPress={handleConfirm}
-        disabled={code.some(digit => digit === '')}
-        accessibilityLabel="Confirm Email"
-      >
-        <Text style={styles.buttonText}>Confirm Email</Text>
-        <FontAwesome name="check-circle" size={18} color="#fff" style={styles.arrow} />
-      </TouchableOpacity>
-      {/* Resend code */}
-      <View style={styles.resendContainer}>
-        <Text style={styles.resendText}>
-          Didn't receive a code?{' '}
-          <Text style={styles.resendLink} onPress={() => {/* handle resend */}}>
-            Resend
-          </Text>
+
+      {/* Centered Letter Animation */}
+      <View style={styles.centered}>
+        <LetterInEnvelope size={120} />
+        <Text style={styles.title}>Check Your Email</Text>
+        <Text style={styles.infoText}>
+          We just sent a magic link to your email. Please click the link to verify your address and continue.
         </Text>
       </View>
     </KeyboardAvoidingView>
@@ -102,7 +38,7 @@ export const options = {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 2,
+    flex: 1,
     backgroundColor: '#000',
     borderRadius: 20,
     padding: 24,
@@ -126,79 +62,26 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
   },
-  title: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 24,
-    marginLeft: 2,
-  },
-  codeRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginBottom: 32,
-    marginLeft: 9,
-    gap: 12,
-  },
-  codeInput: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    backgroundColor: '#222',
-    color: '#fff',
-    fontSize: 22,
-    textAlign: 'center',
-    fontWeight: '600',
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  codeInputError: {
-    borderColor: '#FF4EDB',
-  },
-  error: {
-    color: '#FF4EDB',
-    fontSize: 12,
-    marginBottom: 8,
-    marginLeft: 2,
-  },
-  button: {
-    flexDirection: 'row',
+  centered: {
+    flex: 1,
     alignItems: 'center',
-    backgroundColor: '#FF4EDB',
-    borderRadius: 10,
-    paddingVertical: 14,
     justifyContent: 'center',
-    width: '100%',
-    marginTop: 16,
-    opacity: 1,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-    textAlign: 'center',
-    flex: 1,
-  },
-  arrow: {
-    marginLeft: -20,
-    marginRight: 10,
-  },
-  resendContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
     marginTop: 24,
   },
-  resendText: {
+  title: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 32,
+    marginBottom: 12,
     textAlign: 'center',
-    opacity: 0.7,
   },
-  resendLink: {
-    color: '#FF4EDB',
-    fontWeight: '500',
+  infoText: {
+    color: '#fff',
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 18,
+    marginLeft: 2,
+    textAlign: 'center',
   },
 });
