@@ -1,10 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
 import { FontAwesome } from '@expo/vector-icons';
-import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from '@react-navigation/native';
 import React, { useRef, useState } from 'react';
+
 import {
   Animated,
-  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import DatePicker from 'react-native-date-picker';
 
 const PRIMARY_COLOR = '#000000';
 const WHITE = '#fff';
@@ -38,6 +37,7 @@ function FloatingInput({
   keyboardType,
   editable = true,
   style,
+  placeholder,
   ...props
 }: any) {
   const [isFocused, setIsFocused] = useState(false);
@@ -51,27 +51,59 @@ function FloatingInput({
     }).start();
   }, [isFocused, value]);
 
-  const labelStyle = {
-    position: 'absolute',
-    left: 16,
-    top: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [18, -10],
-    }),
-    fontSize: animatedIsFocused.interpolate({
-      inputRange: [0, 1],
-      outputRange: [16, 12],
-    }),
-    color: isFocused ? GREEN : '#bbb',
-    backgroundColor: PRIMARY_COLOR,
-    paddingHorizontal: 4,
-    zIndex: 2,
-    fontFamily: 'Poppins-Regular',
-  };
+ const labelStyle = {
+  position: 'absolute',
+  left: 16,
+  top: animatedIsFocused.interpolate({
+    inputRange: [0, 1],
+    outputRange: [18, -10],
+  }),
+  fontSize: animatedIsFocused.interpolate({
+    inputRange: [0, 1],
+    outputRange: [16, 12],
+  }),
+  color: isFocused ? GREEN : '#bbb',
+  backgroundColor: '#2E2E2E',
+  paddingHorizontal: 6,  
+  paddingVertical: 2,   
+  marginLeft: -4,       
+  marginRight: -4,
+  borderRadius: 6,       
+  zIndex: 2,
+  fontFamily: 'Poppins-Regular',
+};
 
   return (
     <View style={{ marginBottom: 24 }}>
       <Animated.Text style={labelStyle}>{label}</Animated.Text>
+      {/* Custom placeholder background */}
+      {!value && !isFocused && (
+                <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 16,
+              right: 16,
+              top: 18,
+              height: 20,
+              backgroundColor: '#2E2E2E', 
+              borderRadius: 4,
+              zIndex: 1,
+              justifyContent: 'center',
+            }}
+          >
+
+          <Text
+            style={{
+              color: '#bbb',
+              fontSize: 16,
+              fontFamily: 'Poppins-Regular',
+            }}
+          >
+            {label}
+          </Text>
+        </View>
+      )}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -96,15 +128,11 @@ function FloatingInput({
 }
 
 export default function AuthScreen() {
+  const navigation = useNavigation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [gender, setGender] = useState('');
-  const [dob, setDob] = useState<Date | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [country] = useState('Nigeria');
-  const [countryCode] = useState('+234');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -119,15 +147,15 @@ export default function AuthScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: PRIMARY_COLOR }}>
       <View style={styles.headerRow}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => { if (navigation && (navigation as any).canGoBack && (navigation as any).canGoBack()) navigation.goBack(); }}>
           <FontAwesome name="arrow-left" size={24} color={WHITE} />
         </TouchableOpacity>
-        <ThemedText type="title" style={styles.headerTitle}>Personal details</ThemedText>
         <TouchableOpacity>
-          <FontAwesome name="comment-o" size={22} color={WHITE} />
+          <FontAwesome name="headphones" size={22} color={WHITE} />
         </TouchableOpacity>
       </View>
-
+     <ThemedText type="title" style={styles.headerTitle}>Personal details</ThemedText>
+       
       <View style={styles.container}>
         {/* First and Last Name */}
         <FloatingInput
@@ -141,51 +169,7 @@ export default function AuthScreen() {
           onChangeText={setLastName}
         />
 
-        {/* Gender Dropdown */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={styles.floatingLabel}>Gender</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={gender}
-              dropdownIconColor={WHITE}
-              style={styles.picker}
-              onValueChange={(itemValue) => setGender(itemValue)}
-            >
-              <Picker.Item label="Select Gender" value="" color="#bbb" />
-              <Picker.Item label="Male" value="Male" />
-              <Picker.Item label="Female" value="Female" />
-              <Picker.Item label="Other" value="Other" />
-            </Picker>
-          </View>
-        </View>
-
-        {/* Date Picker */}
-        <TouchableOpacity
-          style={[styles.input, { justifyContent: 'center', marginBottom: 24, borderColor: showDatePicker ? GREEN : '#232323' }]}
-          onPress={() => {
-            setShowDatePicker(true);
-            Keyboard.dismiss();
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={{ color: dob ? WHITE : '#bbb', fontSize: 16, fontFamily: 'Poppins-Regular' }}>
-            {dob ? dob.toLocaleDateString() : 'Date of Birth'}
-          </Text>
-        </TouchableOpacity>
-        <DatePicker
-          modal
-          open={showDatePicker}
-          date={dob || new Date()}
-          mode="date"
-          maximumDate={new Date()}
-          onConfirm={(date) => {
-            setShowDatePicker(false);
-            setDob(date);
-          }}
-          onCancel={() => setShowDatePicker(false)}
-          theme="dark"
-        />
-
+     
         {/* Nationality (not editable) */}
         <FloatingInput
           label="Nationality"
@@ -193,22 +177,7 @@ export default function AuthScreen() {
           editable={false}
         />
 
-        {/* Country code and phone */}
-        <View style={styles.row}>
-          <View style={[styles.input, styles.countryCodeBox]}>
-            <Text style={{ fontSize: 18, marginRight: 6 }}>🇳🇬</Text>
-            <Text style={{ color: WHITE, fontFamily: 'Poppins-Regular' }}>{countryCode}</Text>
-            <FontAwesome name="angle-down" size={16} color={WHITE} style={{ marginLeft: 4 }} />
-          </View>
-          <FloatingInput
-            label="Phone Number"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            style={{ flex: 2, marginLeft: 8, marginBottom: 0 }}
-          />
-        </View>
-
+   
         {/* Email */}
         <FloatingInput
           label="Email Address"
@@ -218,7 +187,7 @@ export default function AuthScreen() {
         />
 
         {/* Password */}
-        <View style={{ marginBottom: 32 }}>
+        <View style={{ marginBottom: 3 }}>
           <FloatingInput
             label="Password"
             value={password}
@@ -287,13 +256,13 @@ export default function AuthScreen() {
           </TouchableOpacity>
           <Text style={styles.agreeText}>
             I acknowledge that I have read and agree to{' '}
-            <Text style={styles.link}>Bamboo’s Agreements</Text>
+            <Text style={styles.link}>Niha's Agreements</Text>
           </Text>
         </View>
 
         {/* Continue Button */}
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: isPasswordValid && passwordsMatch && agree ? GREEN : PRIMARY_COLOR }]}
+          style={[styles.button, { backgroundColor: isPasswordValid && passwordsMatch && agree ? "#2E2E2E" : PRIMARY_COLOR }]}
           disabled={!(isPasswordValid && passwordsMatch && agree)}
         >
           <Text style={styles.buttonText}>Continue</Text>
@@ -308,8 +277,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 64, // Increased for more space from top
-    marginBottom: 24, // Added space below header
+    paddingTop: 64, 
+    marginBottom: 24, 
     backgroundColor: PRIMARY_COLOR,
     justifyContent: 'space-between',
   },
@@ -326,7 +295,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   input: {
-    backgroundColor: '#232323',
+    backgroundColor: '#2E2E2E', 
     color: 'white',
     borderRadius: 8,
     paddingHorizontal: 16,
@@ -348,41 +317,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     fontFamily: 'Poppins-Regular',
   },
-  pickerWrapper: {
-    backgroundColor: '#232323',
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: '#232323',
-    marginTop: 18,
-    marginBottom: 0,
-    paddingLeft: 8,
-    paddingRight: 8,
-    height: 48,
-    justifyContent: 'center',
-  },
-  picker: {
-    color: WHITE,
-    fontFamily: 'Poppins-Regular',
-    width: '100%',
-    height: 48,
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  countryCodeBox: {
-    flex: 1.2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-    backgroundColor: '#232323',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 48,
-    borderWidth: 1.5,
-    borderColor: '#232323',
-  },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 24,
+    },
+
+    phoneInputBox: {
+      flex: 11,
+      marginLeft: 8,
+    },
+
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -390,7 +335,7 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     position: 'absolute',
-    right: 16,
+    right: 18,
     top: 18,
     zIndex: 1,
   },
