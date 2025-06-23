@@ -16,7 +16,7 @@ export default function OnboardingScreen() {
       />
       {/* Illustration */}
       <Image
-        source={require('@/assets/images/onboarding.png')} // Replace with your illustration path
+        source={require('@/assets/images/onboarding.png')} 
         style={styles.illustration}
         resizeMode="contain"
       />
@@ -29,12 +29,14 @@ export default function OnboardingScreen() {
         Its secure and support near about{'\n'}hundred cryto currencies
       </ThemedText>
       {/* Get Started Button */}
-      <TouchableOpacity style={styles.button} onPress={() => router.replace('/(tabs)')}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => router.replace('/auth')}
+      >
         <ThemedText style={styles.buttonText}>Get Started</ThemedText>
         <FontAwesome name="arrow-right" size={22} color="#fff" style={{ marginLeft: 8 }} />
       </TouchableOpacity>
-      {/* Sign up link */}
-      <TouchableOpacity onPress={() => {/* handle sign up */}}>
+      <TouchableOpacity onPress={() => router.replace('/auth')}>
         <ThemedText style={styles.signup}>Sign In</ThemedText>
       </TouchableOpacity>
     </View>
