@@ -36,7 +36,7 @@ export default function OnboardingScreen() {
         <ThemedText style={styles.buttonText}>Get Started</ThemedText>
         <FontAwesome name="arrow-right" size={22} color="#fff" style={{ marginLeft: 8 }} />
       </TouchableOpacity>
-      <TouchableOpacity onPress={() => router.replace('/auth')}>
+      <TouchableOpacity onPress={() => router.replace('/auth/signin')}>
         <ThemedText style={styles.signup}>Sign In</ThemedText>
       </TouchableOpacity>
     </View>

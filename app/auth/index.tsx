@@ -147,7 +147,7 @@ export default function AuthScreen() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: PRIMARY_COLOR }}>
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => { if (navigation && (navigation as any).canGoBack && (navigation as any).canGoBack()) navigation.goBack(); }}>
+        <TouchableOpacity onPress={() => navigation.navigate('onboarding')}>
           <FontAwesome name="arrow-left" size={24} color={WHITE} />
         </TouchableOpacity>
         <TouchableOpacity>

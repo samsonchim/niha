@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const PRIMARY_COLOR = '#2E2E2E';
+const PRIMARY_COLOR = '#000000';
 const WHITE = '#fff';
 const GREEN = '#00C853';
 
@@ -34,7 +34,14 @@ export default function EmailVerificationScreen() {
         >
           <Text style={styles.buttonText}>Back to Login</Text>
         </TouchableOpacity>
-      </View>
+          </View>
+          <TouchableOpacity 
+          style={styles.button}
+          onPress={() => navigation.navigate('auth/bvn')}
+        >
+          <Text style={styles.buttonText}>Next screen</Text>
+        </TouchableOpacity>
+    
     </View>
   );
 }
@@ -67,7 +74,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   button: {
-    backgroundColor: GREEN,
+    backgroundColor: "#2E2E2E",
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
