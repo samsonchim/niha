@@ -128,7 +128,7 @@ function FloatingInput({
 }
 
 export default function AuthScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
@@ -264,6 +264,7 @@ export default function AuthScreen() {
         <TouchableOpacity
           style={[styles.button, { backgroundColor: isPasswordValid && passwordsMatch && agree ? "#2E2E2E" : PRIMARY_COLOR }]}
           disabled={!(isPasswordValid && passwordsMatch && agree)}
+          onPress={() => navigation.navigate('auth/otp')}
         >
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
