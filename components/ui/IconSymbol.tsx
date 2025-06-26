@@ -1,35 +1,40 @@
-// Fallback for using MaterialIcons on Android and web.
-
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
+import { SymbolWeight } from 'expo-symbols';
 import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+import { OpaqueColorValue, StyleProp, TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
+type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
+type IconMapping = Record<string, MaterialIconName>;
 
 /**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ * Define mapping from SF Symbols to Material Icons here.
  */
 const MAPPING = {
   'house.fill': 'home',
-  'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
-  'chevron.right': 'chevron-right',
-} as IconMapping;
+  'wallet.fill': 'account-balance-wallet',
+  'creditcard.fill': 'credit-card', 
+  'arrow.left.arrow.right': 'swap-horiz',
+  'chart.line.uptrend.xyaxis': 'trending-up',
+  'line.3.horizontal': 'menu',
+  'bell': 'notifications-none',
+};
+
 
 /**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
+ * Valid icon names based on keys in the mapping.
+ */
+type IconSymbolName = keyof typeof MAPPING;
+
+/**
+ * Cross-platform Icon component.
+ * Uses SF Symbols on iOS and MaterialIcons on Android/web.
  */
 export function IconSymbol({
   name,
   size = 24,
   color,
   style,
+  weight, // optional, for future SF Symbol support
 }: {
   name: IconSymbolName;
   size?: number;
@@ -37,5 +42,12 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  const iconName = MAPPING[name];
+
+  if (!iconName) {
+    console.warn(`⚠️ Unknown icon symbol name: "${name}". Check your MAPPING.`);
+    return null;
+  }
+
+  return <MaterialIcons name={iconName as any} size={size} color={color} style={style} />;
 }

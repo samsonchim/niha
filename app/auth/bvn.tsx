@@ -14,7 +14,6 @@ export default function BVNScreen() {
 
 
   const handleBvnChange = (text: string) => {
-    // Only allow numbers and limit to 11 digits
     if (/^\d*$/.test(text) && text.length <= 11) {
       setBvn(text);
     }

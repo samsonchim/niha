@@ -1,75 +1,105 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
+import { CryptoPortfolio } from '@/components/CryptoAssets';
+import { PortfolioBalance } from '@/components/PortfolioBalance';
+import { ReferAction } from '@/components/ReferAction';
 import { ThemedView } from '@/components/ThemedView';
+import { TransferHistory } from '@/components/TransferHistory';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import React from 'react';
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+  const handleNotificationPress = () => {
+    console.log('Notification pressed');
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+    <SafeAreaView style={styles.container}>
+      <ThemedView style={styles.container}>
+        {/* Header - Fixed */}
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={require('@/assets/images/avatars/avatar_1.png')}
+              style={styles.avatar}
+            />
+          </View>
+          <TouchableOpacity onPress={handleNotificationPress} activeOpacity={0.7}>
+            <IconSymbol name="bell" size={20} color="#00C853" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Scrollable Content */}
+        <ScrollView 
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Portfolio Balance Section */}
+          <View style={styles.content}>
+            <PortfolioBalance
+              title="Portfolio Balance"
+              amount="₦100,700.50"
+              subtitle="Unminted Balance: 45,000.00"
+              accountNumber="6770548913"
+            />
+          </View>
+
+          {/* Crypto Portfolio Section */}
+          <CryptoPortfolio />
+          
+          {/* Refer Action Section */}
+          <ReferAction />
+          
+          {/* Transfer History Section */}
+          <TransferHistory />
+          
+          {/* Bottom spacing for tab bar */}
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+    backgroundColor: 'inherit', // Keeps header background consistent
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  avatarContainer: {
+    width: 25,
+    height: 25,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  avatar: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20, // Extra padding at bottom
+  },
+  content: {
+    paddingHorizontal: 15,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginBottom: 5,
+  },
+  bottomSpacing: {
+    height: 100, // Space for the tab bar
   },
 });
