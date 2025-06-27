@@ -1,7 +1,8 @@
 import { FontAwesome } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface PortfolioBalanceProps {
   title: string;
@@ -25,8 +26,9 @@ export function PortfolioBalance({
   const copyAccountNumber = async () => {
     try {
       await Clipboard.setStringAsync(accountNumber);
+      Alert.alert('Copied!', 'Account number copied to clipboard');
     } catch (error) {
-     
+      Alert.alert('Error', 'Failed to copy account number');
     }
   };
 
@@ -53,7 +55,11 @@ export function PortfolioBalance({
             />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.transactionHistory}>
+        <TouchableOpacity
+          style={styles.transactionHistory}
+          onPress={() => router.push('/screens/transaction-history')}
+          activeOpacity={0.7}
+        >
           <Text style={styles.historyText}>Transaction History</Text>
           <FontAwesome name="chevron-right" size={12} color="#aaa" />
         </TouchableOpacity>
