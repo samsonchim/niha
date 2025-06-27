@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   title: {
     color: '#fff',
     fontSize: 20,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: 'Poppins-Bold',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   filterText: {
     color: '#666',
     fontSize: 14,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'Poppins-Regular',
   },
   activeFilterText: {
     color: '#00C853',
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   transactionType: {
     color: '#fff',
     fontSize: 14,
-    fontFamily: 'Poppins-Medium',
+    fontFamily: 'Poppins-Regular',
     marginBottom: 2,
   },
   description: {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontSize: 14,
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: 'Poppins-Regular',
     marginBottom: 2,
   },
   status: {

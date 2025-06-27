@@ -1,16 +1,23 @@
 import { CryptoPortfolio } from '@/components/CryptoAssets';
+import { NotificationOverlay } from '@/components/NotificationOverlay';
 import { PortfolioBalance } from '@/components/PortfolioBalance';
 import { ReferAction } from '@/components/ReferAction';
 import { ThemedView } from '@/components/ThemedView';
 import { TransferHistory } from '@/components/TransferHistory';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+  const [showNotifications, setShowNotifications] = useState(false);
+
   const handleNotificationPress = () => {
-    console.log('Notification pressed');
+    setShowNotifications(true);
+  };
+
+  const closeNotifications = () => {
+    setShowNotifications(false);
   };
 
   return (
@@ -57,6 +64,12 @@ export default function HomeScreen() {
           {/* Bottom spacing for tab bar */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
+
+        {/* Notification Overlay */}
+        <NotificationOverlay 
+          visible={showNotifications} 
+          onClose={closeNotifications} 
+        />
       </ThemedView>
     </SafeAreaView>
   );
@@ -73,7 +86,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
-    backgroundColor: 'inherit', // Keeps header background consistent
+    backgroundColor: 'inherit',
   },
   avatarContainer: {
     width: 25,
@@ -100,6 +113,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   bottomSpacing: {
-    height: 100, // Space for the tab bar
+    height: 100,
   },
 });
