@@ -1,6 +1,7 @@
 import { CopyToClipboard } from '@/components/ui/CopyToClipboard';
+import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Wallet {
@@ -146,10 +147,25 @@ type FilterType = 'Crypto' | 'Fiat';
 
 export default function WalletsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('Crypto');
+  const [showFiatModal, setShowFiatModal] = useState(false);
 
   const filteredWallets = walletData.filter(wallet => 
     wallet.category === selectedFilter
   );
+
+  const handleFilterPress = (filter: FilterType) => {
+    if (filter === 'Fiat') {
+      setShowFiatModal(true);
+    } else {
+      setSelectedFilter(filter);
+      setShowFiatModal(false);
+    }
+  };
+
+  const closeFiatModal = () => {
+    setShowFiatModal(false);
+    setSelectedFilter('Crypto');
+  };
 
   const copyAddress = (address: string) => {
     console.log('Copied address:', address);
@@ -161,12 +177,11 @@ export default function WalletsScreen() {
         <Text style={styles.title}>Wallets</Text>
         <TouchableOpacity activeOpacity={0.7}>
           <View style={styles.qrContainer}>
-            <View style={styles.qrGrid}>
-              <View style={styles.qrDot} />
-              <View style={styles.qrDot} />
-              <View style={styles.qrDot} />
-              <View style={styles.qrDot} />
-            </View>
+            <Image
+              source={require('@/assets/images/icons/qr-scanner.png')}
+              style={{ width: 24, height: 24, tintColor: '#00C853' }}
+              resizeMode="contain"
+            />
           </View>
         </TouchableOpacity>
       </View>
@@ -176,7 +191,7 @@ export default function WalletsScreen() {
           <TouchableOpacity
             key={filter}
             style={[styles.filterTab, selectedFilter === filter && styles.activeFilterTab]}
-            onPress={() => setSelectedFilter(filter)}
+            onPress={() => handleFilterPress(filter)}
             activeOpacity={0.7}
           >
             <Text style={[styles.filterText, selectedFilter === filter && styles.activeFilterText]}>
@@ -217,6 +232,84 @@ export default function WalletsScreen() {
           </View>
         ))}
       </ScrollView>
+
+      {/* Fiat Virtual Account Modal */}
+      <Modal
+        visible={showFiatModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={closeFiatModal}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={closeFiatModal}
+          />
+          
+          <View style={styles.modalContainer}>
+            {/* Virtual Account Card */}
+            <View style={styles.virtualAccountCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.bankIconContainer}>
+                  <FontAwesome name="bank" size={16} color="#fff" />
+                </View>
+                <View style={styles.cardHeaderText}>
+                  <Text style={styles.cardTitle}>Dedicated Virtual Account</Text>
+                  <Text style={styles.cardSubtitle}>Make transfers using this account number</Text>
+                </View>
+              </View>
+              
+              <Text style={styles.accountNumber}>615 398 9490</Text>
+              <Text style={styles.bankName}>Access Microfinance Bank</Text>
+              
+              <TouchableOpacity style={styles.shareButton}>
+                <Text style={styles.shareButtonText}>Share Details</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* OR Divider */}
+            <View style={styles.orContainer}>
+              <View style={styles.orLine} />
+              <Text style={styles.orText}>OR</Text>
+              <View style={styles.orLine} />
+            </View>
+
+            {/* Cash Deposit Options */}
+            <View style={styles.depositOptions}>
+              <TouchableOpacity style={styles.depositOption}>
+                <View style={styles.depositIconContainer}>
+                  <FontAwesome name="money" size={16} color="#fff" />
+                </View>
+                <View style={styles.depositTextContainer}>
+                  <Text style={styles.depositTitle}>Cash Deposit</Text>
+                  <Text style={styles.depositSubtitle}>Deposit the money to your dedicated virtual account</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.depositOption}>
+                <View style={styles.depositIconContainer}>
+                  <FontAwesome name="money" size={16} color="#fff" />
+                </View>
+                <View style={styles.depositTextContainer}>
+                  <Text style={styles.depositTitle}>Cash Deposit</Text>
+                  <Text style={styles.depositSubtitle}>Deposit the money to your dedicated virtual account</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.depositOption}>
+                <View style={styles.depositIconContainer}>
+                  <FontAwesome name="money" size={16} color="#fff" />
+                </View>
+                <View style={styles.depositTextContainer}>
+                  <Text style={styles.depositTitle}>Cash Deposit</Text>
+                  <Text style={styles.depositSubtitle}>Deposit the money to your dedicated virtual account</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -368,5 +461,135 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     flex: 1,
     marginRight: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    width: '85%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  virtualAccountCard: {
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  bankIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#666',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    color: '#888',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+  },
+  accountNumber: {
+    color: '#fff',
+    fontSize: 24,
+    fontFamily: 'Poppins-Bold',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 2,
+  },
+  bankName: {
+    color: '#888',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  shareButton: {
+    backgroundColor: '#00C853',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  shareButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  orContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  orLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  orText: {
+    color: '#888',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    marginHorizontal: 15,
+  },
+  depositOptions: {
+    gap: 12,
+  },
+  depositOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+    padding: 16,
+  },
+  depositIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#00C853',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  depositTextContainer: {
+    flex: 1,
+  },
+  depositTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    marginBottom: 2,
+  },
+  depositSubtitle: {
+    color: '#888',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+    lineHeight: 16,
   },
 });

@@ -1,7 +1,6 @@
-import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
@@ -19,47 +18,30 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
         tabBarHideOnKeyboard: true,
         tabBarShowLabel: true,
-        tabBarBackground: () =>
-          Platform.OS === 'ios' ? (
-            <BlurView
-              intensity={80}
-              tint="dark"
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '90%',
-                borderRadius: 20,
-                overflow: 'hidden',
-              }}
-            />
-          ) : (
-            <View
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '90%',
-                borderRadius: 20,
-                backgroundColor: 'rgba(0,0,0,0.8)',
-                overflow: 'hidden',
-              }}
-            />
-          ),
+        tabBarBackground: () => (
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '90%',
+              borderRadius: 20,
+              backgroundColor: '#000000', 
+              overflow: 'hidden',
+            }}
+          />
+        ),
         tabBarStyle: {
           position: 'absolute',
           bottom: 20,
-          marginHorizontal: 5,
+          marginHorizontal: 10,
           elevation: 0,
-          backgroundColor: 'transparent',
           borderTopWidth: 0,
           height: 70,
           borderRadius: 20,
           paddingBottom: 12,
           paddingTop: 8,
-          shadowColor: '#000',
           shadowOffset: {
             width: 0,
             height: 4,
