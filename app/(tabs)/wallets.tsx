@@ -1,8 +1,14 @@
 import { CopyToClipboard } from '@/components/ui/CopyToClipboard';
 import { FontAwesome } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+
+// During Serverside handling, I will be Extracting only wallet.id then fetching data from a central state and 
+// also Making wallet-details.tsx responsive to route changes
+
 
 interface Wallet {
   id: string;
@@ -167,8 +173,18 @@ export default function WalletsScreen() {
     setSelectedFilter('Crypto');
   };
 
-  const copyAddress = (address: string) => {
-    console.log('Copied address:', address);
+  const handleWalletPress = (wallet: Wallet) => {
+    router.push({
+      pathname: '/screens/wallet-details',
+      params: {
+        name: wallet.name,
+        symbol: wallet.symbol,
+        balance: wallet.balance,
+        usdValue: wallet.usdValue,
+        icon: wallet.icon,
+        address: wallet.address,
+      },
+    });
   };
 
   return (
@@ -203,7 +219,12 @@ export default function WalletsScreen() {
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {filteredWallets.map((wallet) => (
-          <View key={wallet.id} style={styles.walletItem}>
+          <TouchableOpacity 
+            key={wallet.id} 
+            style={styles.walletItem}
+            onPress={() => handleWalletPress(wallet)}
+            activeOpacity={0.7}
+          >
             <View style={styles.iconContainer}>
               <Image
                 source={ICONS[wallet.icon] || ICONS['btc']}
@@ -226,10 +247,17 @@ export default function WalletsScreen() {
 
               <View style={styles.addressRow}>
                 <Text style={styles.address} numberOfLines={1}>{wallet.address}</Text>
-                <CopyToClipboard text={wallet.address} />
+                <TouchableOpacity 
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent wallet navigation when copy is pressed
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <CopyToClipboard text={wallet.address} />
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 

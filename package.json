@@ -19,6 +19,7 @@
     "@react-navigation/native": "^7.1.6",
     "expo": "~53.0.12",
     "expo-blur": "~14.1.5",
+    "expo-clipboard": "~7.1.4",
     "expo-constants": "~17.1.6",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
@@ -45,8 +46,7 @@
     "react-native-svg": "^15.12.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "react-vector-icons": "^0.0.1",
-    "expo-clipboard": "~7.1.4"
+    "react-vector-icons": "^0.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
