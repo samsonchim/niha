@@ -1,101 +1,250 @@
-import { Colors, Fonts, Spacing } from '@/components/GlobalStyles';
-import { Picker } from '@react-native-picker/picker';
+import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-export default function TransferScreen() {
-  const [accountNumber, setAccountNumber] = useState('');
-  const [selectedBank, setSelectedBank] = useState('');
+const { width } = Dimensions.get('window');
+const CRYPTOS = ['BTC', 'ETH', 'SOL', 'BNB', 'USDT'];
+
+export default function UnmintScreen() {
+  const [cryptoAmount, setCryptoAmount] = useState('');
+  const [fiatAmount, setFiatAmount] = useState('');
+  const [selectedCrypto, setSelectedCrypto] = useState('BTC');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Transfer Fiat</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Unmint</Text>
+        <TouchableOpacity>
+          <FontAwesome name="cog" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-      {/* Account Number Input */}
-      <Text style={styles.label}>Account Number</Text>
-      <TextInput
-        style={styles.input}
-        value={accountNumber}
-        onChangeText={setAccountNumber}
-        placeholder="Enter account number"
-        keyboardType="numeric"
-      />
+      {/* Overlapping Cards */}
+      <View style={styles.cardsWrapper}>
+        {/* From Section */}
+        <View style={styles.card}>
+          <Text style={styles.label}>From</Text>
+          <View style={styles.row}>
+            {/* Dropdown */}
+            <View style={{ position: 'relative' }}>
+              <TouchableOpacity
+                style={styles.cryptoSelector}
+                onPress={() => setDropdownOpen((open) => !open)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cryptoText}>{selectedCrypto}</Text>
+                <FontAwesome
+                  name={dropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color="#fff"
+                  style={{ marginLeft: 6 }}
+                />
+              </TouchableOpacity>
+              {dropdownOpen && (
+                <View style={styles.dropdown}>
+                  {CRYPTOS.filter((c) => c !== selectedCrypto).map((crypto) => (
+                    <TouchableOpacity
+                      key={crypto}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setSelectedCrypto(crypto);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownText}>{crypto}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="0"
+              placeholderTextColor="#bbb"
+              keyboardType="numeric"
+              value={cryptoAmount}
+              onChangeText={(text) => setCryptoAmount(text)}
+            />
+          </View>
+        </View>
 
-      {/* Bank Dropdown */}
-      <Text style={styles.label}>Select Bank</Text>
-      <View style={styles.dropdownContainer}>
-        <Picker
-          selectedValue={selectedBank}
-          onValueChange={(itemValue) => setSelectedBank(itemValue)}
-          style={styles.dropdown}
-        >
-          <Picker.Item label="Select a bank" value="" />
-          <Picker.Item label="Access Bank" value="access" />
-          <Picker.Item label="GTBank" value="gtbank" />
-          <Picker.Item label="Zenith Bank" value="zenith" />
-          <Picker.Item label="First Bank" value="first" />
-        </Picker>
+        {/* Swap Icon Overlap */}
+        <View style={styles.swapIconContainer}>
+          <View style={styles.swapCircle}>
+            <FontAwesome name="exchange" size={20} color="#fff" />
+          </View>
+        </View>
+
+        {/* To Section */}
+        <View style={[styles.card, styles.toCard]}>
+          <Text style={styles.label}>To</Text>
+          <View style={styles.row}>
+            <Text style={styles.cryptoText}>NGN</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0"
+              placeholderTextColor="#bbb"
+              keyboardType="numeric"
+              value={fiatAmount}
+              onChangeText={(text) => setFiatAmount(text)}
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Conversion Rate */}
+      <View style={styles.rateContainer}>
+        <FontAwesome name="refresh" size={12} color="#fff" />
+        <Text style={styles.rateText}>
+          1 {selectedCrypto} ≈ 30,000 NGN
+        </Text>
       </View>
 
       {/* Continue Button */}
-      <TouchableOpacity
-        style={[styles.button, { backgroundColor: accountNumber && selectedBank ? Colors.green : Colors.gray }]}
-        disabled={!accountNumber || !selectedBank}
-      >
-        <Text style={styles.buttonText}>Continue</Text>
+      <TouchableOpacity style={styles.continueButton}>
+        <Text style={styles.continueButtonText}>Continue</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
+const CARD_WIDTH = width - 40;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
-    padding: Spacing.medium,
+    backgroundColor: '#000',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
   },
   title: {
-    color: Colors.white,
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    marginBottom: Spacing.large,
-    textAlign: 'center',
+    fontSize: 18,
+    color: '#fff',
+    fontFamily: 'Poppins-Bold',
+  },
+  cardsWrapper: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  card: {
+    backgroundColor: '#1E1E1E',
+    borderRadius: 14,
+    padding: 16,
+    width: CARD_WIDTH,
+    zIndex: 1,
+  },
+  toCard: {
+    marginTop: 15,
+    zIndex: 1,
+  },
+  swapIconContainer: {
+    position: 'absolute',
+    top: CARD_WIDTH / 4.1,
+    left: (CARD_WIDTH / 2) - 28,
+    zIndex: 2,
+  },
+  swapCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    elevation: 4,
   },
   label: {
-    color: Colors.white,
+    fontSize: 14,
+    color: '#bbb',
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cryptoSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  cryptoText: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
-    marginBottom: Spacing.small,
+    color: '#fff',
+    fontFamily: 'Poppins-Regular',
+    marginLeft: 0,
   },
   input: {
-    backgroundColor: Colors.darkGray,
-    color: Colors.white,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.medium,
-    paddingVertical: Spacing.small,
     fontSize: 16,
-    fontFamily: Fonts.regular,
-    marginBottom: Spacing.medium,
-  },
-  dropdownContainer: {
-    backgroundColor: Colors.darkGray,
-    borderRadius: 8,
-    marginBottom: Spacing.medium,
+    color: '#fff',
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 16,
   },
   dropdown: {
-    color: Colors.white,
-    fontSize: 16,
-    fontFamily: Fonts.regular,
-  },
-  button: {
+    position: 'absolute',
+    top: 32,
+    left: 0,
+    backgroundColor: '#222',
     borderRadius: 8,
-    paddingVertical: Spacing.medium,
-    alignItems: 'center',
-    marginTop: Spacing.large,
+    paddingVertical: 4,
+    minWidth: 70,
+    zIndex: 10,
+    elevation: 10,
   },
-  buttonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontFamily: Fonts.bold,
+  dropdownItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  dropdownText: {
+    color: '#fff',
+    fontSize: 15,
+    fontFamily: 'Poppins-Regular',
+  },
+  rateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start', // Move to left
+    marginBottom: 20,
+    marginLeft: 4,
+  },
+  rateText: {
+    fontSize: 12, // Smaller text
+    color: '#bbb',
+    fontFamily: 'Poppins-Regular',
+    marginLeft: 8,
+  },
+  continueButton: {
+    backgroundColor: '#333',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    marginBottom: 20,
+  },
+  continueButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontFamily: 'Poppins-Bold',
   },
 });
