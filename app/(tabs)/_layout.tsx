@@ -83,9 +83,9 @@ export default function TabLayout() {
           }}
           />
           <Tabs.Screen
-          name="transfer"
+          name="unmint"
           options={{
-            title: 'Transfer',
+            title: 'Unmint',
             tabBarIcon: ({ color }) => (
             <View style={{ alignItems: 'center', justifyContent: 'center', width: 40 }}>
               <IconSymbol size={24} name="arrow.left.arrow.right" color={color} />
@@ -93,17 +93,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="rates"
-        options={{
-          title: 'Rates',
-          tabBarIcon: ({ color }) => (
-            <View style={{ alignItems: 'center', justifyContent: 'center', width: 40 }}>
-              <IconSymbol size={24} name="chart.line.uptrend.xyaxis" color={color} />
-            </View>
-          ),
-        }}
-      />
+    
       <Tabs.Screen
         name="menu"
         options={{

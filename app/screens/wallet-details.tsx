@@ -1,7 +1,7 @@
-import PreLoader from '@/components/ui/PreLoader'; // Import PreLoader component
+import CoinChart from '@/components/CoinChart';
 import { FontAwesome } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   Image,
   Linking,
@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ICONS: Record<string, any> = {
@@ -26,45 +25,8 @@ const ICONS: Record<string, any> = {
   doge: require('@/assets/images/icons/doge.png'),
 };
 
-const COINGECKO_IDS: Record<string, string> = {
-  btc: 'bitcoin',
-  ethereum: 'ethereum',
-  bnb: 'binancecoin',
-  solana: 'solana',
-  usdt: 'tether',
-  usdc: 'usd-coin',
-  polygon: 'matic-network',
-  tron: 'tron',
-  dai: 'dai',
-  doge: 'dogecoin',
-};
-
 export default function WalletDetailScreen() {
   const { name, symbol, balance, usdValue, icon } = useLocalSearchParams();
-  const [chartData, setChartData] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchChartData = async () => {
-      try {
-        setLoading(true);
-        const coinId = COINGECKO_IDS[icon as string];
-        if (!coinId) throw new Error('Coin ID not found');
-        const res = await fetch(
-          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=1`
-        );
-        const data = await res.json();
-        const prices = data.prices.map((p: number[]) => parseFloat(p[1].toFixed(2)));
-        setChartData(prices.slice(-6));
-      } catch (error) {
-        console.error('Error fetching chart data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchChartData();
-  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -74,9 +36,7 @@ export default function WalletDetailScreen() {
           <FontAwesome name="fire" size={16} color="#FFD700" />
           <Text style={styles.gasFeeText}>$2 Gas fee</Text>
         </View>
-        <TouchableOpacity>
-          <FontAwesome name="line-chart" size={20} color="#00C853" />
-        </TouchableOpacity>
+     
       </View>
 
       {/* Warning Box */}
@@ -108,42 +68,7 @@ export default function WalletDetailScreen() {
 
       {/* Trading Chart */}
       <View style={styles.chartContainer}>
-        {loading ? (
-          <PreLoader /> // Use PreLoader component for loading state
-        ) : (
-          <LineChart
-            data={{
-              labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'], // Time labels at the bottom
-              datasets: [
-                {
-                  data: chartData.length > 0 ? chartData : [0, 0, 0, 0, 0, 0],
-                  color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // Red line
-                  strokeWidth: 2, // Line thickness
-                },
-              ],
-            }}
-            width={350}
-            height={220}
-            yAxisSuffix="K" // Add 'K' to price values
-            yAxisInterval={1} // Interval between price values
-            chartConfig={{
-              backgroundColor: '#000',
-              backgroundGradientFrom: '#000',
-              backgroundGradientTo: '#333',
-              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Axis color
-              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Label color
-              fillShadowGradient: 'rgba(255, 0, 0, 0.3)', // Red gradient fill
-              fillShadowGradientOpacity: 1,
-              propsForDots: {
-                r: '3',
-                strokeWidth: '1',
-                stroke: '#fff',
-              },
-            }}
-            bezier
-            style={styles.chart}
-          />
-        )}
+        <CoinChart /> {/* Replace previous chart implementation with CoinChart */}
       </View>
 
       {/* Actions */}
@@ -233,9 +158,6 @@ const styles = StyleSheet.create({
   chartContainer: {
     marginBottom: 30,
     alignItems: 'center',
-  },
-  chart: {
-    borderRadius: 16,
   },
   actionRow: {
     flexDirection: 'row',
