@@ -73,7 +73,7 @@ export default function WalletDetailScreen() {
 
       {/* Actions */}
       <View style={styles.actionRow}>
-        <ActionButton icon="bolt" label="Unmint" />
+        <ActionButton icon="bolt" label="Mint" />
         <ActionButton icon="exchange" label="Swap" />
         <ActionButton icon="arrow-down" label="Receive" />
       </View>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   sendButton: {
     backgroundColor: '#333',
     paddingVertical: 14,
-    borderRadius: 24,
+    borderRadius: 14,
     alignItems: 'center',
     marginTop: 'auto',
     marginBottom: 24,
