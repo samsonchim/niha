@@ -1,14 +1,17 @@
+import PreLoader from '@/components/ui/PreLoader'; // Import PreLoader component
 import { FontAwesome } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { Image, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Image,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-
-// During Backend, I will be Extracting only wallet.id then fetching data from a central state and 
-// also Making wallet-details.tsx responsive to route changes
-
-
 
 const ICONS: Record<string, any> = {
   btc: require('@/assets/images/icons/bitcoin.png'),
@@ -23,47 +26,60 @@ const ICONS: Record<string, any> = {
   doge: require('@/assets/images/icons/doge.png'),
 };
 
-export default function WalletDetailScreen() {
-  const { name, symbol, balance, usdValue, icon, address } = useLocalSearchParams();
-  const router = useRouter();
+const COINGECKO_IDS: Record<string, string> = {
+  btc: 'bitcoin',
+  ethereum: 'ethereum',
+  bnb: 'binancecoin',
+  solana: 'solana',
+  usdt: 'tether',
+  usdc: 'usd-coin',
+  polygon: 'matic-network',
+  tron: 'tron',
+  dai: 'dai',
+  doge: 'dogecoin',
+};
 
-  // If you need to hide the header, configure it in your route options or layout file.
+export default function WalletDetailScreen() {
+  const { name, symbol, balance, usdValue, icon } = useLocalSearchParams();
+  const [chartData, setChartData] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        setLoading(true);
+        const coinId = COINGECKO_IDS[icon as string];
+        if (!coinId) throw new Error('Coin ID not found');
+        const res = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=1`
+        );
+        const data = await res.json();
+        const prices = data.prices.map((p: number[]) => parseFloat(p[1].toFixed(2)));
+        setChartData(prices.slice(-6));
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <FontAwesome name="arrow-left" size={20} color="#00C853" />
-        </TouchableOpacity>
+        <View style={styles.gasFeeContainer}>
+          <FontAwesome name="fire" size={16} color="#FFD700" />
+          <Text style={styles.gasFeeText}>$2 Gas fee</Text>
+        </View>
         <TouchableOpacity>
-          <FontAwesome name="info-circle" size={20} color="#00C853" />
+          <FontAwesome name="line-chart" size={20} color="#00C853" />
         </TouchableOpacity>
       </View>
 
-      {/* Icon & Balance */}
-      <View style={styles.centerBox}>
-        <Image 
-          source={ICONS[icon as string] || ICONS['btc']} 
-          style={styles.coinIcon} 
-        />
-        <Text style={styles.balance}>{balance} {name}</Text>
-        <Text style={styles.usdValue}>{usdValue}</Text>
-      </View>
-
-      {/* Actions */}
-      <View style={styles.actionRow}>
-        <ActionButton icon="bolt" label="Unmint" />
-        <ActionButton icon="exchange" label="Swap" />
-        <ActionButton icon="arrow-down" label="Receive" />
-      </View>
-
-      {/* Send Button */}
-      <TouchableOpacity style={styles.sendButton}>
-        <Text style={styles.sendButtonText}>Send {name}</Text>
-      </TouchableOpacity>
-
-      {/* Notice */}
+      {/* Warning Box */}
       <View style={styles.noticeBox}>
         <FontAwesome name="exclamation-circle" size={16} color="#FFD700" style={{ marginRight: 8 }} />
         <Text style={styles.noticeText}>
@@ -80,11 +96,67 @@ export default function WalletDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Wallet Address */}
-      <View style={styles.addressContainer}>
-        <Text style={styles.addressLabel}>Wallet Address:</Text>
-        <Text style={styles.addressText} numberOfLines={2}>{address}</Text>
+      {/* Icon & Balance */}
+      <View style={styles.centerBox}>
+        <Image
+          source={ICONS[icon as string] || ICONS['btc']}
+          style={styles.coinIcon}
+        />
+        <Text style={styles.balance}>{balance} {name}</Text>
+        <Text style={styles.usdValue}>{usdValue}</Text>
       </View>
+
+      {/* Trading Chart */}
+      <View style={styles.chartContainer}>
+        {loading ? (
+          <PreLoader /> // Use PreLoader component for loading state
+        ) : (
+          <LineChart
+            data={{
+              labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'], // Time labels at the bottom
+              datasets: [
+                {
+                  data: chartData.length > 0 ? chartData : [0, 0, 0, 0, 0, 0],
+                  color: (opacity = 1) => `rgba(255, 0, 0, ${opacity})`, // Red line
+                  strokeWidth: 2, // Line thickness
+                },
+              ],
+            }}
+            width={350}
+            height={220}
+            yAxisSuffix="K" // Add 'K' to price values
+            yAxisInterval={1} // Interval between price values
+            chartConfig={{
+              backgroundColor: '#000',
+              backgroundGradientFrom: '#000',
+              backgroundGradientTo: '#333',
+              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Axis color
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Label color
+              fillShadowGradient: 'rgba(255, 0, 0, 0.3)', // Red gradient fill
+              fillShadowGradientOpacity: 1,
+              propsForDots: {
+                r: '3',
+                strokeWidth: '1',
+                stroke: '#fff',
+              },
+            }}
+            bezier
+            style={styles.chart}
+          />
+        )}
+      </View>
+
+      {/* Actions */}
+      <View style={styles.actionRow}>
+        <ActionButton icon="bolt" label="Unmint" />
+        <ActionButton icon="exchange" label="Swap" />
+        <ActionButton icon="arrow-down" label="Receive" />
+      </View>
+
+      {/* Send Button */}
+      <TouchableOpacity style={styles.sendButton}>
+        <Text style={styles.sendButtonText}>Send {name}</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -107,19 +179,36 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginVertical: 20,
   },
-  name: {
-    textAlign: 'center',
-    color: '#fff',
-    fontSize: 18,
-    fontFamily: 'Poppins-SemiBold',
+  gasFeeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  symbol: {
-    textAlign: 'center',
-    color: '#aaa',
-    fontSize: 13,
+  gasFeeText: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    marginLeft: 6,
+  },
+  noticeBox: {
+    flexDirection: 'row',
+    backgroundColor: '#9E8B3D',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  noticeText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: 'Poppins-Regular',
+  },
+  noticeLink: {
+    color: '#00C853',
+    textDecorationLine: 'underline',
   },
   centerBox: {
     alignItems: 'center',
@@ -141,6 +230,13 @@ const styles = StyleSheet.create({
     color: '#bbb',
     fontFamily: 'Poppins-Regular',
   },
+  chartContainer: {
+    marginBottom: 30,
+    alignItems: 'center',
+  },
+  chart: {
+    borderRadius: 16,
+  },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -156,50 +252,16 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
   },
   sendButton: {
-    backgroundColor: '#00C853',
+    backgroundColor: '#333',
     paddingVertical: 14,
     borderRadius: 24,
     alignItems: 'center',
+    marginTop: 'auto',
     marginBottom: 24,
   },
   sendButtonText: {
-    color: '#000',
+    color: '#fff',
     fontSize: 16,
     fontFamily: 'Poppins-Regular',
-  },
-  noticeBox: {
-    flexDirection: 'row',
-    backgroundColor: '#9E8B3D',
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  noticeText: {
-    flex: 1,
-    color: '#fff',
-    fontSize: 11,
-    fontFamily: 'Poppins-Regular',
-  },
-  noticeLink: {
-    color: '#00C853',
-    textDecorationLine: 'underline',
-  },
-  addressContainer: {
-    backgroundColor: '#1A1A1A',
-    padding: 16,
-    borderRadius: 12,
-  },
-  addressLabel: {
-    color: '#888',
-    fontSize: 12,
-    fontFamily: 'Poppins-Regular',
-    marginBottom: 8,
-  },
-  addressText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'Poppins-Regular',
-    lineHeight: 18,
   },
 });

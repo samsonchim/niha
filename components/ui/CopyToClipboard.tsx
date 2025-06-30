@@ -9,7 +9,7 @@ interface CopyProps {
   iconColor?: string;
 }
 
-export function CopyToClipboard({ text, iconSize = 14, iconColor = '#00C853' }: CopyProps) {
+export function CopyToClipboard({ text, iconSize = 14, iconColor = '#fff' }: CopyProps) {
   const handleCopy = async () => {
     await Clipboard.setStringAsync(text);
     if (Platform.OS === 'android') {

@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
   activeFilterTab: {
     backgroundColor: 'transparent',
     borderBottomWidth: 2,
-    borderBottomColor: '#00C853',
+    borderBottomColor: '#fff',
     borderRadius: 0,
   },
   filterText: {
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
   },
   activeFilterText: {
-    color: '#00C853',
+    color: '#fff',
   },
   scrollView: {
     flex: 1,
@@ -429,10 +429,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   coinIcon: {
-    width: 36, // Slightly smaller than container
+    width: 36, 
     height: 36,
     borderRadius: 18,
-    resizeMode: 'contain', // This will fit the entire image within the bounds
+    resizeMode: 'contain', 
   },
   walletInfo: {
     flex: 1,
