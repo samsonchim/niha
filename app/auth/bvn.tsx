@@ -1,21 +1,102 @@
+import API_CONFIG from '@/constants/ApiConfig';
 import { AntDesign } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import axios from 'axios';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const PRIMARY_COLOR = '#000000';
 const WHITE = '#fff';
 const GREEN = '#00C853';
 
 export default function BVNScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [bvn, setBvn] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [userName, setUserName] = useState({ firstName: '', lastName: '' });
 
-
+  // Get user data from navigation params or previous screens
+  React.useEffect(() => {
+    if (route.params?.email) {
+      setUserEmail(route.params.email);
+    }
+    if (route.params?.firstName && route.params?.lastName) {
+      setUserName({
+        firstName: route.params.firstName,
+        lastName: route.params.lastName
+      });
+    }
+  }, [route.params]);
 
   const handleBvnChange = (text: string) => {
     if (/^\d*$/.test(text) && text.length <= 11) {
       setBvn(text);
+    }
+  };
+
+  const createVirtualAccount = async () => {
+    if (bvn.length !== 11) {
+      Alert.alert('Invalid BVN', 'Please enter a valid 11-digit BVN');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.post(API_CONFIG.URLS.CREATE_VIRTUAL_ACCOUNT, {
+        email: userEmail,
+        bvn: bvn,
+        firstName: userName.firstName,
+        lastName: userName.lastName
+      });
+
+      if (response.data.success) {
+        const isMockAccount = response.data.data.isMockAccount;
+        const mockText = isMockAccount ? ' (Development Mode)' : '';
+        const isExisting = response.data.message.includes('already exists');
+        
+        Alert.alert(
+          'Success!',
+          isExisting 
+            ? `Your virtual account is ready!\n\nAccount Number: ${response.data.data.accountNumber}\nBank: ${response.data.data.bankName}`
+            : `Virtual account created successfully!${mockText}\n\nAccount Number: ${response.data.data.accountNumber}\nBank: ${response.data.data.bankName}${isMockAccount ? '\n\n📝 This is a mock account for development. Your app is ready for real Flutterwave integration.' : ''}`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => navigation.navigate('(tabs)', {
+                user: {
+                  email: userEmail,
+                  firstName: userName.firstName,
+                  lastName: userName.lastName
+                },
+                virtualAccount: response.data.data
+              })
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to create virtual account');
+      }
+    } catch (error: any) {
+      console.error('Virtual account creation error:', error);
+      
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Add more specific error messages
+      if (errorMessage.includes('Invalid Contract Code')) {
+        errorMessage = 'Payment service configuration issue. Please contact support or try again later.';
+      }
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,11 +141,21 @@ export default function BVNScreen() {
         </Text>
 
         <TouchableOpacity 
-          style={[styles.button, { backgroundColor: bvn.length === 11 ? '#2E2E2E' : PRIMARY_COLOR }]}
-          onPress={() => bvn.length === 11 && navigation.navigate('auth/signin')}
-          disabled={bvn.length !== 11}
+          style={[styles.button, { 
+            backgroundColor: bvn.length === 11 && !loading ? '#2E2E2E' : PRIMARY_COLOR,
+            opacity: loading ? 0.7 : 1
+          }]}
+          onPress={createVirtualAccount}
+          disabled={bvn.length !== 11 || loading}
         >
-          <Text style={styles.buttonText}>Continue</Text>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={WHITE} />
+              <Text style={[styles.buttonText, { marginLeft: 8 }]}>Creating Account...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Continue</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -142,5 +233,10 @@ const styles = StyleSheet.create({
     color: WHITE,
     fontSize: 16,
     fontFamily: 'Poppins-Bold',
-  }
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

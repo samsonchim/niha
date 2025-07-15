@@ -164,7 +164,11 @@ export default function AuthScreen() {
       });
 
       if (response.data.success) {
-        navigation.navigate('auth/otp', { email });
+        navigation.navigate('auth/otp', { 
+          email,
+          firstName,
+          lastName
+        });
       } else {
         Alert.alert('Signup Failed', response.data.message || 'Try again later.');
       }

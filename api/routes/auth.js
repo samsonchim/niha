@@ -3,6 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -668,6 +669,444 @@ router.get('/verify', async (req, res) => {
       </body>
       </html>
     `);
+  }
+});
+
+// POST /api/create-virtual-account - Create dedicated virtual account with Monnify
+router.post('/create-virtual-account', async (req, res) => {
+  try {
+    const { email, bvn, firstName, lastName } = req.body;
+
+    // Validation
+    if (!email || !bvn || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required: email, bvn, firstName, lastName'
+      });
+    }
+
+    // Validate BVN format (11 digits)
+    if (!/^\d{11}$/.test(bvn)) {
+      return res.status(400).json({
+        success: false,
+        message: 'BVN must be exactly 11 digits'
+      });
+    }
+
+    // Check if user exists and is verified
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, first_name, last_name, is_verified')
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.is_verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please verify your email first'
+      });
+    }
+
+    // Check if user already has a fiat account
+    const { data: existingFiat, error: fiatCheckError } = await supabase
+      .from('fiat')
+      .select('virtual_account_number, virtual_account_bank, fiat_balance')
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingFiat && !fiatCheckError) {
+      return res.status(200).json({
+        success: true,
+        message: 'Virtual account already exists',
+        data: {
+          accountNumber: existingFiat.virtual_account_number,
+          bankName: existingFiat.virtual_account_bank,
+          accountName: `${user.first_name} ${user.last_name}`,
+          balance: existingFiat.fiat_balance
+        }
+      });
+    }
+
+    // Check if we should use mock accounts first (skip Flutterwave entirely)
+    if (process.env.USE_MOCK_ACCOUNTS === 'true') {
+      console.log('Using mock virtual account (USE_MOCK_ACCOUNTS=true)');
+      
+      const mockAccountNumber = `90${Date.now().toString().slice(-8)}`; // Generate 10-digit account
+      const encryptedBVN = Buffer.from(bvn + process.env.BVN_ENCRYPTION_KEY).toString('base64');
+
+      const { data: fiatData, error: insertError } = await supabase
+        .from('fiat')
+        .insert({
+          user_id: user.id,
+          bvn_encrypted: encryptedBVN,
+          virtual_account_number: mockAccountNumber,
+          virtual_account_bank: 'Flutterwave (Mock)',
+          virtual_account_reference: `NIHA_MOCK_${user.id}_${Date.now()}`,
+          monnify_customer_id: email,
+          virtual_accounts: [{
+            accountNumber: mockAccountNumber,
+            bankName: 'Flutterwave Mock Bank',
+            bankCode: '999'
+          }],
+          fiat_balance: 0.00,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Database insert error:', insertError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to save virtual account details'
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Mock virtual account created successfully',
+        data: {
+          accountNumber: mockAccountNumber,
+          bankName: 'Flutterwave Mock Bank',
+          accountName: `${firstName} ${lastName}`,
+          accountReference: `NIHA_MOCK_${user.id}_${Date.now()}`,
+          balance: 0.00,
+          isMockAccount: true,
+          note: 'This is a mock account. Set USE_MOCK_ACCOUNTS=false to use real Flutterwave API.'
+        }
+      });
+    }
+
+    // If not using mock accounts, proceed with real Flutterwave integration
+    console.log('Attempting real Flutterwave integration...');
+
+    try {
+      // Create dedicated virtual account with Flutterwave
+      const accountData = {
+        email: email,
+        is_permanent: true,
+        bvn: bvn,
+        tx_ref: `NIHA_${user.id}_${Date.now()}`,
+        firstname: firstName,
+        lastname: lastName,
+        narration: `${firstName} ${lastName} - Niha Virtual Account`
+      };
+
+      console.log('Creating Flutterwave virtual account with data:', {
+        email: accountData.email,
+        firstname: accountData.firstname,
+        lastname: accountData.lastname,
+        tx_ref: accountData.tx_ref,
+        is_permanent: accountData.is_permanent,
+        bvn: 'PROVIDED'
+      });
+
+      const createAccountResponse = await axios.post(`${process.env.FLUTTERWAVE_BASE_URL}/virtual-account-numbers`, accountData, {
+        headers: {
+          'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const accountResult = createAccountResponse.data;
+      console.log('Flutterwave API response:', {
+        status: accountResult.status,
+        message: accountResult.message
+      });
+
+      if (accountResult.status !== 'success') {
+        console.error('Flutterwave account creation failed:', accountResult);
+        return res.status(500).json({
+          success: false,
+          message: `Failed to create virtual account: ${accountResult.message}`,
+          details: accountResult
+        });
+      }
+
+      const virtualAccount = accountResult.data;
+
+      // Encrypt BVN
+      const encryptedBVN = Buffer.from(bvn + process.env.BVN_ENCRYPTION_KEY).toString('base64');
+
+      // Create fiat record with encrypted BVN
+      const { data: fiatData, error: insertError } = await supabase
+        .from('fiat')
+        .insert({
+          user_id: user.id,
+          bvn_encrypted: encryptedBVN,
+          virtual_account_number: virtualAccount.account_number,
+          virtual_account_bank: virtualAccount.bank_name,
+          virtual_account_reference: virtualAccount.flw_ref,
+          monnify_customer_id: email, // Keep field name for compatibility
+          virtual_accounts: [{
+            accountNumber: virtualAccount.account_number,
+            bankName: virtualAccount.bank_name,
+            bankCode: virtualAccount.bank_code || '000'
+          }],
+          fiat_balance: 0.00,
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Database insert error:', insertError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to save virtual account details'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Virtual account created successfully with Flutterwave',
+        data: {
+          accountNumber: virtualAccount.account_number,
+          bankName: virtualAccount.bank_name,
+          accountName: `${firstName} ${lastName}`,
+          accountReference: virtualAccount.flw_ref,
+          balance: 0.00,
+          provider: 'Flutterwave'
+        }
+      });
+
+    } catch (flutterwaveError) {
+      console.error('Flutterwave API error:', flutterwaveError.response?.data || flutterwaveError.message);
+      return res.status(500).json({
+        success: false,
+        message: 'Payment service error: ' + (flutterwaveError.response?.data?.message || flutterwaveError.message),
+        details: flutterwaveError.response?.data
+      });
+    }
+
+  } catch (error) {
+    console.error('Create virtual account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/fiat-account/:email - Get user's fiat account details
+router.get('/fiat-account/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    // Get user and their fiat account
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select(`
+        id, 
+        first_name, 
+        last_name, 
+        email,
+        fiat (
+          virtual_account_number,
+          virtual_account_bank,
+          virtual_account_reference,
+          fiat_balance,
+          virtual_accounts,
+          is_active,
+          created_at
+        )
+      `)
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.fiat || user.fiat.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No fiat account found for this user'
+      });
+    }
+
+    const fiatAccount = user.fiat[0];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        accountNumber: fiatAccount.virtual_account_number,
+        bankName: fiatAccount.virtual_account_bank,
+        accountName: `${user.first_name} ${user.last_name}`,
+        accountReference: fiatAccount.virtual_account_reference,
+        balance: parseFloat(fiatAccount.fiat_balance),
+        isActive: fiatAccount.is_active,
+        allAccounts: fiatAccount.virtual_accounts,
+        createdAt: fiatAccount.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Get fiat account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/test-flutterwave - Test Flutterwave connection
+router.get('/test-flutterwave', async (req, res) => {
+  try {
+    console.log('Testing Flutterwave connection with:', {
+      publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY ? `${process.env.FLUTTERWAVE_PUBLIC_KEY.substring(0, 15)}...` : 'NOT_SET',
+      secretKey: process.env.FLUTTERWAVE_SECRET_KEY ? `${process.env.FLUTTERWAVE_SECRET_KEY.substring(0, 15)}...` : 'NOT_SET',
+      baseUrl: process.env.FLUTTERWAVE_BASE_URL,
+      encryptionKey: process.env.FLUTTERWAVE_ENCRYPTION_KEY ? 'SET' : 'NOT_SET'
+    });
+
+    // Test Flutterwave connection by getting banks
+    const banksResponse = await axios.get(`${process.env.FLUTTERWAVE_BASE_URL}/banks/NG`, {
+      headers: {
+        'Authorization': `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const banksData = banksResponse.data;
+
+    if (banksData.status !== 'success') {
+      return res.status(500).json({
+        success: false,
+        message: 'Flutterwave connection failed',
+        details: banksData
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Flutterwave connection successful',
+      data: {
+        authSuccessful: true,
+        banksCount: banksData.data?.length || 0,
+        baseUrl: process.env.FLUTTERWAVE_BASE_URL,
+        provider: 'Flutterwave'
+      }
+    });
+
+  } catch (error) {
+    console.error('Flutterwave test error:', error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Flutterwave test failed',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+// POST /api/login - Authenticate user
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email and password are required'
+      });
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Find user by email
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, password_hash, first_name, last_name, is_verified')
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Check if user is verified
+    if (!user.is_verified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before signing in',
+        needsVerification: true
+      });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
+
+    // Check if user has a fiat account
+    const { data: fiatAccount, error: fiatError } = await supabase
+      .from('fiat')
+      .select('virtual_account_number, virtual_account_bank, fiat_balance, is_active')
+      .eq('user_id', user.id)
+      .single();
+
+    const hasVirtualAccount = fiatAccount && !fiatError;
+
+    // Successful login response
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          isVerified: user.is_verified
+        },
+        hasVirtualAccount,
+        virtualAccount: hasVirtualAccount ? {
+          accountNumber: fiatAccount.virtual_account_number,
+          bankName: fiatAccount.virtual_account_bank,
+          balance: parseFloat(fiatAccount.fiat_balance),
+          isActive: fiatAccount.is_active
+        } : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
   }
 });
 

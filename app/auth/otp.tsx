@@ -37,7 +37,11 @@ export default function EmailVerificationScreen() {
         
         // Auto-navigate to BVN screen after a short delay
         setTimeout(() => {
-          navigation.navigate('auth/bvn');
+          navigation.navigate('auth/bvn', { 
+            email,
+            firstName: route.params?.firstName,
+            lastName: route.params?.lastName
+          });
         }, 2000);
       }
     } catch (error) {

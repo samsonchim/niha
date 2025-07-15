@@ -1,17 +1,96 @@
+import API_CONFIG from '@/constants/ApiConfig';
 import { AntDesign } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const PRIMARY_COLOR = '#000000';
 const WHITE = '#fff';
 const GREEN = '#00C853';
 
 export default function SignInScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter both email and password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.post(API_CONFIG.URLS.LOGIN, {
+        email: email.trim().toLowerCase(),
+        password: password
+      });
+
+      if (response.data.success) {
+        const { user, hasVirtualAccount, virtualAccount } = response.data.data;
+        
+        Alert.alert(
+          'Welcome back!',
+          `Hello ${user.firstName}! ${hasVirtualAccount ? 'Your account is ready.' : 'Complete your setup by adding your BVN.'}`,
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                if (hasVirtualAccount) {
+                  // Navigate to main app
+                  navigation.navigate('(tabs)', { user, virtualAccount });
+                } else {
+                  // Navigate to BVN setup
+                  navigation.navigate('auth/bvn', {
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName
+                  });
+                }
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Login Failed', response.data.message);
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      let errorMessage = 'Something went wrong. Please try again.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (error?.response?.data?.needsVerification) {
+        Alert.alert(
+          'Email Verification Required',
+          'Please check your email and verify your account before signing in.',
+          [
+            {
+              text: 'Resend Email',
+              onPress: () => {
+                // TODO: Implement resend verification email
+                Alert.alert('Info', 'Please check your email for the verification link.');
+              }
+            },
+            { text: 'OK' }
+          ]
+        );
+      } else {
+        Alert.alert('Login Failed', errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -79,10 +158,14 @@ export default function SignInScreen() {
                   : PRIMARY_COLOR
             }
           ]}
-          disabled={email.length === 0 || password.length === 0}
-          onPress={() => navigation.navigate('(tabs)')}
+          disabled={email.length === 0 || password.length === 0 || loading}
+          onPress={handleSignIn}
         >
-          <Text style={styles.buttonText}>Sign In</Text>
+          {loading ? (
+            <ActivityIndicator color={WHITE} />
+          ) : (
+            <Text style={styles.buttonText}>Sign In</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.signupRow}>
