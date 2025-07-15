@@ -1,4 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
+import API_CONFIG from '@/constants/ApiConfig';
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
@@ -154,7 +155,7 @@ export default function AuthScreen() {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/signup', {
+      const response = await axios.post(API_CONFIG.URLS.SIGNUP, {
         firstName,
         lastName,
         email,

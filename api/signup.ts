@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
-import { NextApiRequest, NextApiResponse } from 'next';
-import nodemailer from 'nodemailer';
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import * as bcrypt from 'bcryptjs';
+import * as nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid';
 
 const supabase = createClient(
@@ -19,7 +19,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -102,11 +102,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         subject: 'Verify Your Niha Account',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #00C853;">Welcome to Niha!</h2>
+            <h2 style="color:rgb(0, 0, 0);">Welcome to Niha!</h2>
             <p>Hi ${firstName},</p>
             <p>Thanks for signing up for Niha. To complete your registration, please verify your email address by clicking the button below:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${verifyLink}" style="background-color: #00C853; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              <a href="${verifyLink}" style="background-color:rgb(0, 0, 0); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
                 Verify Email
               </a>
             </div>

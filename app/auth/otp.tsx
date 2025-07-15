@@ -1,5 +1,7 @@
 import Confirmation from '@/components/Confirmation';
-import { useNavigation } from '@react-navigation/native';
+import API_CONFIG from '@/constants/ApiConfig';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -8,40 +10,89 @@ const WHITE = '#fff';
 const GREEN = '#00C853';
 
 export default function EmailVerificationScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [startAnimation, setStartAnimation] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+  const [email, setEmail] = useState('');
+
+  // Get email from navigation params
+  useEffect(() => {
+    if (route.params?.email) {
+      setEmail(route.params.email);
+    }
+  }, [route.params]);
+
+  // Function to check verification status
+  const checkVerificationStatus = async () => {
+    if (!email) return;
+
+    try {
+      const response = await axios.get(`${API_CONFIG.BASE_URL}/api/verify-status/${encodeURIComponent(email)}`);
+      
+      if (response.data.success && response.data.verified) {
+        setIsVerified(true);
+        setIsChecking(false);
+        
+        // Auto-navigate to BVN screen after a short delay
+        setTimeout(() => {
+          navigation.navigate('auth/bvn');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error checking verification status:', error);
+    }
+  };
 
   useEffect(() => {
     // Trigger animation when screen mounts
     setStartAnimation(true);
-  }, []);
+
+    // Start checking verification status every 3 seconds if email is available
+    if (email) {
+      const interval = setInterval(checkVerificationStatus, 3000);
+      
+      // Check immediately
+      checkVerificationStatus();
+
+      // Cleanup interval on unmount
+      return () => clearInterval(interval);
+    }
+  }, [email]);
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {/* 🟢 Centered Animation with startAnimation=true */}
-        <Confirmation startAnimation={startAnimation} />
+        {/* Centered Animation */}
+        <Confirmation />
 
-        <Text style={styles.title}>Check your email</Text>
-
-        <Text style={styles.description}>
-          We have sent a verification link to your email address. Please check your inbox and follow the link to verify your account.
+        <Text style={styles.title}>
+          {isVerified ? 'Email Verified!' : 'Check your email'}
         </Text>
 
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.buttonText}>Back to Login</Text>
-        </TouchableOpacity>
-          </View>
+        <Text style={styles.description}>
+          {isVerified 
+            ? 'Your email has been successfully verified. You will be redirected to the next step shortly.'
+            : `We have sent a verification link to ${email}. Please check your inbox and follow the link to verify your account.`
+          }
+        </Text>
+
+        {isVerified && (
+          <Text style={styles.successText}>
+            ✓ Proceeding to next step...
+          </Text>
+        )}
+
+        {!isVerified && (
           <TouchableOpacity 
-          style={styles.button}
-          onPress={() => navigation.navigate('auth/bvn')}
-        >
-          <Text style={styles.buttonText}>Next screen</Text>
-        </TouchableOpacity>
-    
+            style={styles.button}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.buttonText}>Back to Signup</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -86,5 +137,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Poppins-Bold',
     textAlign: 'center',
+  },
+  successText: {
+    color: GREEN,
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 24,
   },
 });
