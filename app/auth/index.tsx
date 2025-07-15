@@ -1,9 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
 import { FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
 import React, { useRef, useState } from 'react';
-
 import {
+  Alert,
   Animated,
   ScrollView,
   StyleSheet,
@@ -131,7 +132,6 @@ export default function AuthScreen() {
   const navigation = useNavigation<any>();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
   const [country] = useState('Nigeria');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -139,10 +139,41 @@ export default function AuthScreen() {
   const [referral, setReferral] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
+  const [loading, setLoading] = useState(false); // Add loading state
 
   const passwordCheck = checkPassword(password);
   const isPasswordValid = Object.values(passwordCheck).every(Boolean);
   const passwordsMatch = confirmPassword === password && password.length > 0;
+
+  // Add this function after all the useStates:
+  const handleSignup = async () => {
+    if (!isPasswordValid || !passwordsMatch || !agree) {
+      Alert.alert('Error', 'Please complete the form correctly.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.post('http://localhost:5000/signup', {
+        firstName,
+        lastName,
+        email,
+        password,
+        referral,
+      });
+
+      if (response.data.success) {
+        navigation.navigate('auth/otp', { email });
+      } else {
+        Alert.alert('Signup Failed', response.data.message || 'Try again later.');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      Alert.alert('Signup Error', error?.response?.data?.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: PRIMARY_COLOR }}>
@@ -169,7 +200,6 @@ export default function AuthScreen() {
           onChangeText={setLastName}
         />
 
-     
         {/* Nationality (not editable) */}
         <FloatingInput
           label="Nationality"
@@ -177,7 +207,6 @@ export default function AuthScreen() {
           editable={false}
         />
 
-   
         {/* Email */}
         <FloatingInput
           label="Email Address"
@@ -263,10 +292,12 @@ export default function AuthScreen() {
         {/* Continue Button */}
         <TouchableOpacity
           style={[styles.button, { backgroundColor: isPasswordValid && passwordsMatch && agree ? "#2E2E2E" : PRIMARY_COLOR }]}
-          disabled={!(isPasswordValid && passwordsMatch && agree)}
-          onPress={() => navigation.navigate('auth/otp')}
+          disabled={!(isPasswordValid && passwordsMatch && agree) || loading}
+          onPress={handleSignup} // Changed this line
         >
-          <Text style={styles.buttonText}>Continue</Text>
+          <Text style={styles.buttonText}>
+            {loading ? 'Loading...' : 'Continue'}
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
