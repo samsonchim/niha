@@ -1,16 +1,17 @@
 {
-  "name": "niha",
-  "main": "expo-router/entry",
+  "name": "niha-wallet-backend",
   "version": "1.0.0",
+  "main": "mainserver.js",
   "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node mainserver.js"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
+<<<<<<< HEAD
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-clipboard/clipboard": "^1.16.3",
@@ -65,4 +66,12 @@
     "typescript": "~5.8.3"
   },
   "private": true
+=======
+    "@tatumio/tatum": "^4.2.53",
+    "dotenv": "^17.0.1",
+    "ethers": "^6.2.0",
+    "express": "^5.1.0",
+    "moralis": "^2.27.2"
+  }
+>>>>>>> 8d4899d18ccccafbeb3f138f7a2517d74825eb53
 }

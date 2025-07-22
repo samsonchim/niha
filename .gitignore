@@ -1,3 +1,47 @@
+<<<<<<< HEAD
+# Node modules
+node_modules/
+
+# Env files
+.env
+
+/# oldMor.js
+oldMor.js
+
+/# niha.sol
+niha.sol
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Runtime
+.pids
+*.pid
+*.seed
+*.pid.lock
+
+# IDEs
+.vscode/
+.idea/
+
+# Build output
+dist/
+build/
+
+# Optional npm cache
+.npm/
+
+# Debug files
+*.tgz
+=======
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -37,3 +81,4 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+>>>>>>> 741a8904bae4b553ddb765e91d14aa690b7ad34a

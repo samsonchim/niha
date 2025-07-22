@@ -1,0 +1,7 @@
+niha-wallet-backend/
+│
+├── .env
+├── index.js
+├── services/
+│   ├── tatumService.js
+│   └── moralisService.js
