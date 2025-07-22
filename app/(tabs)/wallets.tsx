@@ -1,9 +1,12 @@
 import { CopyToClipboard } from '@/components/ui/CopyToClipboard';
+import CustomSuccessPopup from '@/components/ui/CustomSuccessPopup';
+import API_CONFIG from '@/constants/ApiConfig';
+import WalletBalanceFetcher from '@/utils/WalletBalanceFetcher';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -54,6 +57,22 @@ export default function WalletsScreen() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorPopupData, setErrorPopupData] = useState({ title: '', message: '' });
+
+  // Helper function to show error popup
+  const showError = (title: string, message: string) => {
+    setErrorPopupData({ title, message });
+    setShowErrorPopup(true);
+  };
+
+  // Handle error popup actions
+  const handleErrorPopupContinue = () => {
+    setShowErrorPopup(false);
+    if (errorPopupData.title === 'Authentication Required') {
+      router.replace('/auth');
+    }
+  };
 
   // Load user data and wallets on component mount
   useEffect(() => {
@@ -68,8 +87,7 @@ export default function WalletsScreen() {
       
       if (!userData) {
         console.log('❌ No user data found, redirecting to auth');
-        Alert.alert('Error', 'Please log in to view your wallets');
-        router.replace('/auth');
+        showError('Authentication Required', 'Please log in to view your wallets');
         return;
       }
 
@@ -81,14 +99,14 @@ export default function WalletsScreen() {
       await fetchUserWallets(parsedUser.id);
     } catch (error) {
       console.error('❌ Error loading user data:', error);
-      Alert.alert('Error', 'Failed to load user data');
+      showError('Error', 'Failed to load user data');
     }
   };
 
   const fetchUserWallets = async (userId: string) => {
     try {
       setLoading(true);
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/user-wallets/${userId}`;
+      const apiUrl = `${API_CONFIG.URLS.USER_WALLETS}/${userId}`;
       console.log('🔍 Fetching wallets from:', apiUrl);
       console.log('👤 User ID:', userId);
       
@@ -126,7 +144,8 @@ export default function WalletsScreen() {
       }
     } catch (error) {
       console.error('❌ Error fetching wallets:', error);
-      Alert.alert('Error', `Failed to load wallets: ${error.message}. Check console for details.`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      showError('Error', `Failed to load wallets: ${errorMessage}. Check console for details.`);
       setWallets([]);
     } finally {
       setLoading(false);
@@ -134,36 +153,65 @@ export default function WalletsScreen() {
     }
   };
 
-  // Fetch real-time wallet balances
+  // Fetch real-time wallet balances from blockchain
   const fetchWalletBalances = async (walletList: Wallet[]) => {
     try {
-      console.log('🔄 Fetching wallet balances...');
+      console.log('🔄 Fetching real wallet balances from blockchain...');
       
-      // For now, use mock balances - you can uncomment the real fetcher later
-      // when you have API keys set up
+      // Option 1: Use your backend API to fetch balances (recommended)
+      try {
+        const response = await fetch(API_CONFIG.URLS.WALLET_BALANCES, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            wallets: walletList.map(wallet => ({
+              address: wallet.address,
+              symbol: wallet.symbol,
+              network: wallet.network || 'mainnet'
+            }))
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success && data.balances) {
+          console.log('✅ Received balances from backend:', data.balances);
+          
+          // Update wallet balances with backend response
+          setWallets(prevWallets => 
+            prevWallets.map(wallet => {
+              const balanceData = data.balances.find((b: any) => b.address === wallet.address);
+              if (balanceData) {
+                return {
+                  ...wallet,
+                  balance: balanceData.balance || '0.00',
+                  usdValue: balanceData.usdValue || '$0.00'
+                };
+              }
+              return wallet;
+            })
+          );
+          return; // Exit early if backend API works
+        }
+      } catch (backendError) {
+        console.log('⚠️ Backend balance API not available, falling back to direct blockchain calls');
+      }
+
+      // Option 2: Fallback to direct blockchain API calls
+      console.log('🔗 Fetching balances directly from blockchain APIs...');
       
-      // Mock balance update (remove this when using real API)
-      setTimeout(() => {
-        setWallets(prevWallets => 
-          prevWallets.map(wallet => ({
-            ...wallet,
-            balance: (Math.random() * 0.1).toFixed(6), // Random small balance
-            usdValue: `$${(Math.random() * 100).toFixed(2)}` // Random USD value
-          }))
-        );
-        console.log('✅ Mock wallet balances updated');
-      }, 2000);
-      
-      // Uncomment below to use real balance fetcher
-      /*
       for (let i = 0; i < walletList.length; i++) {
         const wallet = walletList[i];
         
         try {
+          console.log(`🔍 Fetching balance for ${wallet.symbol} at ${wallet.address}`);
+          
           const balanceResult = await WalletBalanceFetcher.getWalletBalance(
             wallet.address, 
             wallet.symbol, 
-            wallet.network
+            wallet.network || 'mainnet'
           );
           
           if (balanceResult.success) {
@@ -174,20 +222,25 @@ export default function WalletsScreen() {
                   : w
               )
             );
+            console.log(`✅ ${wallet.symbol} balance updated: ${balanceResult.balance}`);
+          } else {
+            console.error(`❌ Failed to fetch ${wallet.symbol} balance:`, balanceResult.error);
           }
         } catch (error) {
-          console.error(`Failed to fetch balance for ${wallet.symbol}:`, error);
+          console.error(`❌ Error fetching balance for ${wallet.symbol}:`, error);
         }
         
         // Add delay between requests to avoid rate limiting
         if (i < walletList.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
-      */
+      
+      console.log('✅ Real wallet balance fetching completed');
       
     } catch (error) {
-      console.error('Error fetching wallet balances:', error);
+      console.error('❌ Error fetching wallet balances:', error);
+      showError('Balance Error', 'Failed to fetch wallet balances. Please try again.');
     }
   };
 
@@ -453,6 +506,17 @@ export default function WalletsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Custom Error Popup */}
+      <CustomSuccessPopup
+        visible={showErrorPopup}
+        type="error"
+        title={errorPopupData.title}
+        message={errorPopupData.message}
+        buttonText="OK"
+        onButtonPress={handleErrorPopupContinue}
+        onClose={() => setShowErrorPopup(false)}
+      />
     </SafeAreaView>
   );
 }

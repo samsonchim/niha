@@ -1,7 +1,7 @@
 // API Configuration
 const API_CONFIG = {
   // Base URL for your API
-  BASE_URL: ' https://975601a12c38.ngrok-free.app',
+  BASE_URL: 'https://975601a12c38.ngrok-free.app',
   
   // API Endpoints
   ENDPOINTS: {
@@ -13,6 +13,7 @@ const API_CONFIG = {
     FIAT_ACCOUNT: '/api/fiat-account',
     GET_SEED_PHRASE: '/api/get-seed-phrase',
     USER_WALLETS: '/api/user-wallets',
+    WALLET_BALANCES: '/api/wallet-balances',
     FORGOT_PASSWORD: '/api/forgot-password',
     RESET_PASSWORD: '/api/reset-password',
     PROFILE: '/api/profile',
@@ -33,6 +34,7 @@ const API_CONFIG = {
     get FIAT_ACCOUNT() { return `${API_CONFIG.BASE_URL}/api/fiat-account`; },
     get GET_SEED_PHRASE() { return `${API_CONFIG.BASE_URL}/api/get-seed-phrase`; },
     get USER_WALLETS() { return `${API_CONFIG.BASE_URL}/api/user-wallets`; },
+    get WALLET_BALANCES() { return `${API_CONFIG.BASE_URL}/api/wallet-balances`; },
     get FORGOT_PASSWORD() { return `${API_CONFIG.BASE_URL}/api/forgot-password`; },
     get RESET_PASSWORD() { return `${API_CONFIG.BASE_URL}/api/reset-password`; },
     get PROFILE() { return `${API_CONFIG.BASE_URL}/api/profile`; },

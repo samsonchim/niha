@@ -82,6 +82,7 @@ export default function BVNScreen() {
         // Store user session in AsyncStorage
         console.log('💾 Storing user session data...');
         await AsyncStorage.setItem('userSession', JSON.stringify(userData));
+        await AsyncStorage.setItem('user', JSON.stringify(userData)); // Also store with 'user' key for consistency
         await AsyncStorage.setItem('isLoggedIn', 'true');
         
         console.log('✅ User session stored successfully');
@@ -150,14 +151,15 @@ export default function BVNScreen() {
             authTimestamp: new Date().toISOString()
           };
           await AsyncStorage.setItem('userSession', JSON.stringify(userData));
+          await AsyncStorage.setItem('user', JSON.stringify(userData)); // Also store with 'user' key for consistency
           await AsyncStorage.setItem('isLoggedIn', 'true');
         }
       } catch (error) {
         console.error('❌ Error checking user session:', error);
       }
       
-      // Use router.push for better navigation control
-      router.push({
+      // Use router.replace to completely replace BVN screen with seed phrase screen
+      router.replace({
         pathname: '/auth/seed-phrase',
         params: {
           userId: successData.user.id,

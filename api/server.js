@@ -35,6 +35,46 @@ app.get('/health', (req, res) => {
 // Import and use auth routes BEFORE the general /api route
 app.use('/api', require('./routes/auth'));
 
+// Wallet balance endpoint
+const BlockchainBalanceFetcher = require('./utils/blockchainBalances');
+const balanceFetcher = new BlockchainBalanceFetcher();
+
+app.post('/api/wallet-balances', async (req, res) => {
+  try {
+    console.log('🔄 Wallet balance request received:', req.body);
+    
+    const { wallets } = req.body;
+    
+    if (!wallets || !Array.isArray(wallets)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request: wallets array is required'
+      });
+    }
+
+    console.log(`📊 Fetching balances for ${wallets.length} wallets...`);
+    
+    const balances = await balanceFetcher.batchFetchBalances(wallets);
+    
+    console.log('✅ Balances fetched successfully:', balances);
+    
+    res.json({
+      success: true,
+      balances,
+      timestamp: new Date().toISOString(),
+      count: balances.length
+    });
+    
+  } catch (error) {
+    console.error('❌ Wallet balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch wallet balances',
+      error: error.message
+    });
+  }
+});
+
 // Development test user route (only in development)
 if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
   app.use('/api', require('./test-user-route'));

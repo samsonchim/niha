@@ -1,17 +1,21 @@
 {
-  "name": "niha-wallet-backend",
+  "name": "niha",
   "version": "1.0.0",
-  "main": "mainserver.js",
+  "main": "expo-router/entry",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node mainserver.js"
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest",
+    "lint": "eslint .",
+    "build": "expo build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["crypto", "wallet", "react-native", "expo"],
+  "author": "Niha Team",
+  "license": "MIT",
+  "description": "Niha HD Wallet - Multi-chain crypto wallet with DVA integration",
   "dependencies": {
-<<<<<<< HEAD
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-clipboard/clipboard": "^1.16.3",
@@ -20,7 +24,10 @@
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
+    "@tatumio/tatum": "^4.2.53",
     "axios": "^1.10.0",
+    "dotenv": "^17.0.1",
+    "ethers": "^6.2.0",
     "expo": "~53.0.12",
     "expo-blur": "~14.1.5",
     "expo-clipboard": "~7.1.4",
@@ -40,6 +47,7 @@
     "lodash": "^4.17.21",
     "lottie-react-native": "^7.2.2",
     "moment": "^2.30.1",
+    "moralis": "^2.27.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.4",
@@ -65,13 +73,8 @@
     "eslint-config-expo": "~9.2.0",
     "typescript": "~5.8.3"
   },
-  "private": true
-=======
-    "@tatumio/tatum": "^4.2.53",
-    "dotenv": "^17.0.1",
-    "ethers": "^6.2.0",
-    "express": "^5.1.0",
-    "moralis": "^2.27.2"
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
   }
->>>>>>> 8d4899d18ccccafbeb3f138f7a2517d74825eb53
 }

@@ -2,7 +2,8 @@ import Confirmation from '@/components/Confirmation';
 import API_CONFIG from '@/constants/ApiConfig';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PRIMARY_COLOR = '#000000';
@@ -26,7 +27,7 @@ export default function EmailVerificationScreen() {
 
   // Function to check verification status
   const checkVerificationStatus = async () => {
-    if (!email) return;
+    if (!email || isVerified) return; // Don't check if already verified
 
     try {
       const response = await axios.get(`${API_CONFIG.BASE_URL}/api/verify-status/${encodeURIComponent(email)}`);
@@ -35,12 +36,17 @@ export default function EmailVerificationScreen() {
         setIsVerified(true);
         setIsChecking(false);
         
-        // Auto-navigate to BVN screen after a short delay
+        console.log('✅ Email verified, navigating to BVN screen');
+        
+        // Use router.replace to completely replace OTP screen and stop polling
         setTimeout(() => {
-          navigation.navigate('auth/bvn', { 
-            email,
-            firstName: route.params?.firstName,
-            lastName: route.params?.lastName
+          router.replace({
+            pathname: '/auth/bvn',
+            params: {
+              email,
+              firstName: route.params?.firstName,
+              lastName: route.params?.lastName
+            }
           });
         }, 2000);
       }
@@ -53,17 +59,20 @@ export default function EmailVerificationScreen() {
     // Trigger animation when screen mounts
     setStartAnimation(true);
 
-    // Start checking verification status every 3 seconds if email is available
-    if (email) {
+    // Start checking verification status every 3 seconds if email is available and not already verified
+    if (email && !isVerified) {
       const interval = setInterval(checkVerificationStatus, 3000);
       
       // Check immediately
       checkVerificationStatus();
 
-      // Cleanup interval on unmount
-      return () => clearInterval(interval);
+      // Cleanup interval on unmount or when verified
+      return () => {
+        console.log('🧹 Cleaning up OTP verification interval');
+        clearInterval(interval);
+      };
     }
-  }, [email]);
+  }, [email, isVerified]);
 
   return (
     <View style={styles.container}>

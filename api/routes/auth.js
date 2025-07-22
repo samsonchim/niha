@@ -8,6 +8,34 @@ const { createHDWallet, formatWalletsForDB, generateAllWallets, testHDWalletGene
 
 const router = express.Router();
 
+// In-memory cache for seed phrases (expires after 15 minutes for security)
+const seedPhraseCache = new Map();
+
+// Cache cleanup function
+const cleanupExpiredSeedPhrases = () => {
+  const now = Date.now();
+  for (const [key, data] of seedPhraseCache.entries()) {
+    if (now > data.expires) {
+      seedPhraseCache.delete(key);
+      console.log('🧹 Cleaned up expired seed phrase for:', key);
+    }
+  }
+};
+
+// Run cleanup every 5 minutes
+setInterval(cleanupExpiredSeedPhrases, 5 * 60 * 1000);
+
+// Store seed phrase in cache
+const cacheSeedPhrase = (userId, seedPhrase) => {
+  const expiresAt = Date.now() + (15 * 60 * 1000); // 15 minutes
+  seedPhraseCache.set(userId, {
+    seedPhrase: seedPhrase,
+    expires: expiresAt,
+    accessCount: 0
+  });
+  console.log('🔐 Seed phrase cached for user:', userId, 'expires in 15 minutes');
+};
+
 const supabase = createClient(
   process.env.EXPO_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -755,6 +783,67 @@ router.post('/get-seed-phrase', async (req, res) => {
       });
     }
 
+    // First check the in-memory cache for immediate access - this is the primary method now
+    if (userId && seedPhraseCache.has(userId)) {
+      const cachedData = seedPhraseCache.get(userId);
+      
+      // Check if cache hasn't expired
+      if (Date.now() < cachedData.expires) {
+        // Limit to 3 access attempts for security
+        if (cachedData.accessCount >= 3) {
+          seedPhraseCache.delete(userId);
+          return res.status(403).json({
+            success: false,
+            message: 'Maximum seed phrase access attempts exceeded for security'
+          });
+        }
+        
+        // Increment access count
+        cachedData.accessCount += 1;
+        
+        console.log('🔐 Serving seed phrase from cache for user:', userId, 'access count:', cachedData.accessCount);
+        
+        // Format seed phrase for display
+        const seedWords = cachedData.seedPhrase.split(' ');
+        
+        // If this is the 3rd access, remove from cache
+        if (cachedData.accessCount >= 3) {
+          seedPhraseCache.delete(userId);
+          console.log('🗑️ Removed seed phrase from cache after 3 accesses for user:', userId);
+        }
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Seed phrase retrieved successfully from cache',
+          data: {
+            seedPhrase: seedWords,
+            warning: 'CRITICAL: Save this seed phrase in a secure location. This is the only time it will be shown.',
+            instructions: [
+              'Write down these 12 words in the exact order shown',
+              'Store them in a secure, offline location',
+              'Never share your seed phrase with anyone',
+              'You will need these words to recover your wallet',
+              'Loss of seed phrase means permanent loss of funds'
+            ],
+            expiresIn: 'Limited access remaining',
+            source: 'cache'
+          }
+        });
+      } else {
+        // Cache expired
+        seedPhraseCache.delete(userId);
+        console.log('🕒 Seed phrase cache expired for user:', userId);
+        
+        // Return specific expiry message for cache expiration
+        return res.status(403).json({
+          success: false,
+          message: 'Seed phrase access expired for security. Contact support for wallet recovery options.',
+          note: 'For security, seed phrases can only be accessed within 15 minutes of wallet creation.'
+        });
+      }
+    }
+
+    // Fallback to database check (for cases where temp columns exist)
     // Check if user was recently verified and has wallets
     const query = supabase
       .from('users')
@@ -782,29 +871,29 @@ router.post('/get-seed-phrase', async (req, res) => {
       });
     }
 
-    // Check if temporary seed phrase exists and hasn't expired
+    // Check if temporary seed phrase exists and hasn't expired (database fallback)
     const now = new Date();
     const expiresAt = user.temp_seed_phrase_expires ? new Date(user.temp_seed_phrase_expires) : null;
     
     if (!user.temp_seed_phrase || !expiresAt || now > expiresAt) {
       return res.status(403).json({
         success: false,
-        message: 'Seed phrase access expired. For security, seed phrases can only be accessed within 10 minutes of verification.',
+        message: 'Seed phrase access expired. For security, seed phrases can only be accessed within 15 minutes of wallet creation.',
         note: 'If you need your seed phrase, please contact support or use wallet recovery options.'
       });
     }
 
     try {
-      // Decrypt the temporary seed phrase
+      // Decrypt the temporary seed phrase from database
       const decryptedData = Buffer.from(user.temp_seed_phrase, 'base64').toString();
       const [seedPhrase, timestamp] = decryptedData.split('_');
       
       // Verify timestamp matches verification time (additional security)
-      const verifiedAt = new Date(user.verified_at);
+      const verifiedAt = new Date(user.verified_at || user.wallets_created_at);
       const seedTimestamp = new Date(parseInt(timestamp));
       const timeDiff = Math.abs(seedTimestamp.getTime() - verifiedAt.getTime()) / 1000 / 60; // minutes
       
-      if (timeDiff > 5) { // Allow 5 minute tolerance
+      if (timeDiff > 10) { // Allow 10 minute tolerance
         return res.status(403).json({
           success: false,
           message: 'Seed phrase verification failed - timestamp mismatch'
@@ -832,7 +921,7 @@ router.post('/get-seed-phrase', async (req, res) => {
       
       res.status(200).json({
         success: true,
-        message: 'Seed phrase retrieved successfully',
+        message: 'Seed phrase retrieved successfully from database',
         data: {
           seedPhrase: seedWords,
           warning: 'CRITICAL: Save this seed phrase in a secure location. This is the only time it will be shown.',
@@ -843,7 +932,8 @@ router.post('/get-seed-phrase', async (req, res) => {
             'You will need these words to recover your wallet',
             'Loss of seed phrase means permanent loss of funds'
           ],
-          expiresIn: 'One-time access only'
+          expiresIn: 'One-time access only',
+          source: 'database'
         }
       });
 
@@ -930,55 +1020,61 @@ router.post('/create-virtual-account', async (req, res) => {
         // Generate HD wallet with seed phrase and all crypto wallets
         const walletData = createHDWallet(); // This creates both seed phrase and wallets
         
+        // Cache the seed phrase for immediate access after DVA creation
+        cacheSeedPhrase(user.id, walletData.seedPhrase);
+        
         // Store temporary seed phrase (expires in 10 minutes) - try to update if columns exist
         const seedPhraseExpires = new Date();
         seedPhraseExpires.setMinutes(seedPhraseExpires.getMinutes() + 10);
         
         const tempSeedPhrase = Buffer.from(walletData.seedPhrase + '_' + Date.now()).toString('base64');
         
-            // Try to update user with crypto wallet flags and temporary seed phrase
-            // If temp_seed_phrase columns don't exist, just update has_crypto_wallets
-            try {
-              const { error: updateUserError } = await supabase
-                .from('users')
-                .update({
-                  has_crypto_wallets: true,
-                  wallets_created_at: new Date().toISOString(),
-                  temp_seed_phrase: tempSeedPhrase,
-                  temp_seed_phrase_expires: seedPhraseExpires.toISOString()
-                })
-                .eq('id', user.id);
+        // Try to update user with crypto wallet flags and temporary seed phrase
+        // If temp_seed_phrase columns don't exist, just update has_crypto_wallets
+        try {
+          const { error: updateUserError } = await supabase
+            .from('users')
+            .update({
+              has_crypto_wallets: true,
+              is_verified: true,  // Mark as verified after successful DVA creation
+              wallets_created_at: new Date().toISOString(),
+              temp_seed_phrase: tempSeedPhrase,
+              temp_seed_phrase_expires: seedPhraseExpires.toISOString()
+            })
+            .eq('id', user.id);
 
-              if (updateUserError) {
-                console.log('⚠️ Could not update temp_seed_phrase (columns may not exist), trying without...');
-                // Try again without temp seed phrase columns
-                const { error: fallbackError } = await supabase
-                  .from('users')
-                  .update({
-                    has_crypto_wallets: true,
-                    wallets_created_at: new Date().toISOString()
-                  })
-                  .eq('id', user.id);
-                  
-                if (fallbackError) {
-                  console.error('Error updating user crypto wallet status:', fallbackError);
-                }
-              }
-            } catch (columnError) {
-              console.log('⚠️ Temp seed phrase columns not available, updating basic flags only');
-              // Update without temp seed phrase columns
-              const { error: basicUpdateError } = await supabase
-                .from('users')
-                .update({
-                  has_crypto_wallets: true,
-                  wallets_created_at: new Date().toISOString()
-                })
-                .eq('id', user.id);
-                
-              if (basicUpdateError) {
-                console.error('Error updating user crypto wallet basic status:', basicUpdateError);
-              }
+          if (updateUserError) {
+            console.log('⚠️ Could not update temp_seed_phrase (columns may not exist), trying without...');
+            // Try again without temp seed phrase columns
+            const { error: fallbackError } = await supabase
+              .from('users')
+              .update({
+                has_crypto_wallets: true,
+                is_verified: true,  // Mark as verified after successful DVA creation
+                wallets_created_at: new Date().toISOString()
+              })
+              .eq('id', user.id);
+              
+            if (fallbackError) {
+              console.error('Error updating user crypto wallet status:', fallbackError);
             }
+          }
+        } catch (columnError) {
+          console.log('⚠️ Temp seed phrase columns not available, updating basic flags only');
+          // Update without temp seed phrase columns
+          const { error: basicUpdateError } = await supabase
+            .from('users')
+            .update({
+              has_crypto_wallets: true,
+              is_verified: true,  // Mark as verified after successful DVA creation
+              wallets_created_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+            
+          if (basicUpdateError) {
+            console.error('Error updating user crypto wallet basic status:', basicUpdateError);
+          }
+        }
 
           // Store the seed phrase temporarily in memory/cache for immediate access
           // TODO: Move this to a proper cache/session store when temp_seed_phrase columns are added
@@ -1008,7 +1104,7 @@ router.post('/create-virtual-account', async (req, res) => {
         } catch (walletError) {
           console.error('❌ Error creating/regenerating crypto wallets for existing user:', walletError);
         }
-      } // Close the existing user section
+      // Close the existing user section
       
       return res.status(200).json({
         success: true,
@@ -1161,14 +1257,22 @@ router.post('/create-virtual-account', async (req, res) => {
       
       try {
         // Generate HD wallet with seed phrase and all crypto wallets
+        console.log('🔄 Calling createHDWallet()...');
         const walletData = createHDWallet(); // This creates both seed phrase and wallets
+        console.log('✅ HD Wallet created successfully. Wallets:', Object.keys(walletData.wallets || {}));
+        
+        // Cache the seed phrase for immediate access after DVA creation
+        cacheSeedPhrase(user.id, walletData.seedPhrase);
+        
         const formattedWallets = formatWalletsForDB(user.id, walletData.wallets);
+        console.log('✅ Formatted', formattedWallets.length, 'wallets for database insertion');
         
         // Store temporary seed phrase (expires in 10 minutes)
         const seedPhraseExpires = new Date();
         seedPhraseExpires.setMinutes(seedPhraseExpires.getMinutes() + 10);
         
         const tempSeedPhrase = Buffer.from(walletData.seedPhrase + '_' + Date.now()).toString('base64');
+        console.log('🔑 Temporary seed phrase prepared for storage');
         
         // Update user with crypto wallet flags and temporary seed phrase
         // Handle case where temp_seed_phrase columns don't exist
@@ -1177,6 +1281,7 @@ router.post('/create-virtual-account', async (req, res) => {
             .from('users')
             .update({
               has_crypto_wallets: true,
+              is_verified: true,  // Mark as verified after successful DVA creation
               wallets_created_at: new Date().toISOString(),
               temp_seed_phrase: tempSeedPhrase,
               temp_seed_phrase_expires: seedPhraseExpires.toISOString()
@@ -1185,51 +1290,62 @@ router.post('/create-virtual-account', async (req, res) => {
 
           if (updateUserError) {
             console.log('⚠️ Could not update temp_seed_phrase (columns may not exist), trying without...');
+            console.log('⚠️ Update error details:', updateUserError);
             // Try again without temp seed phrase columns
             const { error: fallbackError } = await supabase
               .from('users')
               .update({
                 has_crypto_wallets: true,
+                is_verified: true,  // Mark as verified after successful DVA creation
                 wallets_created_at: new Date().toISOString()
               })
               .eq('id', user.id);
               
             if (fallbackError) {
               console.error('Error updating user crypto wallet status:', fallbackError);
+            } else {
+              console.log('✅ Updated user basic crypto wallet status');
             }
+          } else {
+            console.log('✅ Updated user with temp seed phrase successfully');
           }
         } catch (columnError) {
           console.log('⚠️ Temp seed phrase columns not available, updating basic flags only');
+          console.log('⚠️ Column error details:', columnError);
           // Update without temp seed phrase columns
           const { error: basicUpdateError } = await supabase
             .from('users')
             .update({
               has_crypto_wallets: true,
+              is_verified: true,  // Mark as verified after successful DVA creation
               wallets_created_at: new Date().toISOString()
             })
             .eq('id', user.id);
             
           if (basicUpdateError) {
             console.error('Error updating user crypto wallet basic status:', basicUpdateError);
+          } else {
+            console.log('✅ Updated user basic crypto wallet status (fallback)');
           }
         }
 
         // Store crypto wallets
+        console.log('💾 Inserting wallets into database...');
         const { error: walletsError } = await supabase
           .from('crypto_wallets')
-          .insert(formattedWallets.map(wallet => ({
-            ...wallet,
-            user_id: user.id
-          })));
+          .insert(formattedWallets);
 
         if (walletsError) {
-          console.error('Error storing crypto wallets:', walletsError);
+          console.error('❌ Error storing crypto wallets:', walletsError);
+          console.error('❌ Wallet data that failed to insert:', JSON.stringify(formattedWallets, null, 2));
         } else {
           console.log('✅ Crypto wallets created successfully for user:', user.id);
+          console.log('✅ Inserted', formattedWallets.length, 'wallet records');
         }
 
       } catch (walletError) {
         console.error('❌ Error creating crypto wallets:', walletError);
+        console.error('❌ Wallet error stack:', walletError.stack);
         // Don't fail the whole request, fiat account was created successfully
       }
 

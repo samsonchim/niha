@@ -1,11 +1,10 @@
 // Example usage of SeedPhraseScreen after user verification
 // This shows how to integrate the seed phrase display into your app flow
 
+import API_CONFIG from '@/constants/ApiConfig';
 import React, { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import SeedPhraseScreen from './SeedPhraseScreen';
-
-const API_BASE_URL = 'http://localhost:3001/api'; // Update with your API URL
 
 interface WalletSetupScreenProps {
   userId: string;
@@ -26,7 +25,7 @@ const WalletSetupScreen: React.FC<WalletSetupScreenProps> = ({
   useEffect(() => {
     const fetchSeedPhrase = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/get-seed-phrase`, {
+        const response = await fetch(API_CONFIG.URLS.GET_SEED_PHRASE, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

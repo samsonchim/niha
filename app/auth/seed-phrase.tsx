@@ -6,17 +6,17 @@ import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as ScreenCapture from 'expo-screen-capture';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -45,20 +45,20 @@ export default function SeedPhraseScreen() {
     useCallback(() => {
       console.log('🎯 Seed phrase screen focused');
       
-      // Block back navigation for error states
-      if (error && !isRealSeedPhrase) {
-        console.log('🚫 Blocking automatic navigation due to error state');
-        setNavigationBlocked(true);
+      // Don't block navigation - let the user control navigation
+      // Only handle hardware back button in severe error cases
+      if (error && error.includes('expired') && !isRealSeedPhrase) {
+        console.log('⚠️ In expired error state, but not blocking navigation');
         
-        // Prevent hardware back button on Android
-        const backHandler = () => {
-          console.log('🚫 Hardware back button blocked in error state');
-          return true; // Block the back action
-        };
-        
-        // Add back button listener if available
+        // Only prevent hardware back on Android in expired state
         if (Platform.OS === 'android') {
           const { BackHandler } = require('react-native');
+          const backHandler = () => {
+            console.log('ℹ️ Hardware back pressed in expired error state');
+            // Allow back action but log it
+            return false;
+          };
+          
           const subscription = BackHandler.addEventListener('hardwareBackPress', backHandler);
           
           return () => {
@@ -151,9 +151,12 @@ export default function SeedPhraseScreen() {
             });
 
             if (response.data.success) {
-              console.log('✅ Real seed phrase fetched successfully');
+              console.log('✅ Real seed phrase fetched successfully from:', response.data.data.source || 'API');
+              console.log('🔍 Seed phrase data:', response.data.data.seedPhrase.length, 'words received');
               setSeedWords(response.data.data.seedPhrase);
               setIsRealSeedPhrase(true);
+              setError(null); // Clear any previous errors
+              console.log('🎯 Seed phrase state updated successfully - should render normally');
             } else {
               console.warn('⚠️ API returned error for seed phrase:', response.data.message);
               
@@ -168,15 +171,17 @@ export default function SeedPhraseScreen() {
                 setSeedWords(explanationPhrase);
                 setError('Your seed phrase access has expired for security reasons. Please contact support if you need wallet recovery assistance.');
                 setIsRealSeedPhrase(false);
+                setShowWarning(false); // Skip warning screen for expired access
               } else {
-                // Use demo seed phrase for other API errors
-                console.log('🎭 Using demo seed phrase for testing');
+                // For other API errors, use demo seed phrase
+                console.log('🎭 Using demo seed phrase for API error:', response.data.message);
                 const demoSeedPhrase = [
                   'abandon', 'ability', 'able', 'about', 'above', 'absent',
                   'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident'
                 ];
                 setSeedWords(demoSeedPhrase);
-                setIsRealSeedPhrase(true); // Allow demo to work like real seed phrase
+                setError('Demo seed phrase loaded. This is not your real seed phrase.');
+                setIsRealSeedPhrase(false);
               }
             }
           } catch (apiError: any) {
@@ -198,15 +203,33 @@ export default function SeedPhraseScreen() {
               console.log('🚨 404 Error state set - error:', 'Seed phrase not available', 'isRealSeedPhrase:', false, 'seedWords length:', helpMessage.length);
             } else if (apiError.response?.status === 403) {
               console.log('🔒 Seed phrase access forbidden - likely expired');
-              setError('Seed phrase access expired for security. Contact support for wallet recovery options.');
+              console.log('🔒 403 Error details:', apiError.response.data);
               
-              const securityMessage = [
-                'Seed', 'phrase', 'access', 'expired', 'for', 'your',
-                'security', 'contact', 'support', 'if', 'needed', 'help'
-              ];
-              setSeedWords(securityMessage);
-              setIsRealSeedPhrase(false);
-              setShowWarning(false); // Hide warning screen when error occurs
+              // Check if user has cached seed phrase available
+              if (apiError.response.data.message && apiError.response.data.message.includes('access expired')) {
+                setError('Seed phrase access expired for security. Contact support for wallet recovery options.');
+                
+                const securityMessage = [
+                  'Seed', 'phrase', 'access', 'expired', 'for', 'your',
+                  'security', 'contact', 'support', 'if', 'needed', 'help'
+                ];
+                setSeedWords(securityMessage);
+                setIsRealSeedPhrase(false);
+                setShowWarning(false); // Hide warning screen when error occurs
+              } else {
+                // Handle other 403 errors
+                console.log('🔒 Other 403 error, trying to continue with available data');
+                setError('Unable to access seed phrase at this time.');
+                setIsRealSeedPhrase(false);
+                
+                // Don't automatically navigate - stay on screen
+                const fallbackMessage = [
+                  'Unable', 'to', 'display', 'seed', 'phrase', 'at',
+                  'this', 'time', 'please', 'try', 'again', 'later'
+                ];
+                setSeedWords(fallbackMessage);
+                setShowWarning(false);
+              }
             } else {
               // Fallback to demo seed phrase for development/testing
               console.log('🎭 Using demo seed phrase due to API error');
@@ -221,6 +244,11 @@ export default function SeedPhraseScreen() {
           
           setLoading(false);
           console.log('🔄 Final state after API call - loading:', false, 'error:', error, 'isRealSeedPhrase:', isRealSeedPhrase, 'seedWords length:', seedWords.length);
+          
+          // Add a small delay to ensure state is fully updated before any navigation
+          setTimeout(() => {
+            console.log('🔄 State settled after delay - staying on seed phrase screen');
+          }, 100);
         } else {
           console.error('❌ User information not found in route params');
           setError('User information not found');
@@ -280,6 +308,7 @@ export default function SeedPhraseScreen() {
                   authTimestamp: new Date().toISOString()
                 };
                 await AsyncStorage.setItem('userSession', JSON.stringify(userData));
+                await AsyncStorage.setItem('user', JSON.stringify(userData)); // Also store with 'user' key for consistency
                 await AsyncStorage.setItem('isLoggedIn', 'true');
               }
               

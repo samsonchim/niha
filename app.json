@@ -40,7 +40,8 @@
       "router": {},
       "eas": {
         "projectId": "302b077a-ad5e-4cc6-bd65-bd54dfe9573e"
-      }
+      },
+      "apiUrl": "https://975601a12c38.ngrok-free.app"
     }
   }
 }

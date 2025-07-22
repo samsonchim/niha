@@ -1,5 +1,5 @@
 import { AntDesign } from '@expo/vector-icons';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
     Animated,
     Dimensions,
@@ -22,6 +22,7 @@ interface CustomSuccessPopupProps {
   onClose?: () => void;
   showCloseButton?: boolean;
   showCancelButton?: boolean;
+  type?: 'success' | 'error';
 }
 
 export default function CustomSuccessPopup({
@@ -32,7 +33,8 @@ export default function CustomSuccessPopup({
   onButtonPress,
   onClose,
   showCloseButton = false,
-  showCancelButton = true
+  showCancelButton = true,
+  type = 'success'
 }: CustomSuccessPopupProps) {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
@@ -128,12 +130,15 @@ export default function CustomSuccessPopup({
             </TouchableOpacity>
           )}
 
-          {/* Success checkmark */}
+          {/* Icon container */}
           <View style={styles.iconContainer}>
-            <View style={styles.checkmarkCircle}>
+            <View style={[
+              styles.iconCircle,
+              type === 'error' ? styles.errorCircle : styles.successCircle
+            ]}>
               <Animated.View
                 style={[
-                  styles.checkmark,
+                  styles.icon,
                   {
                     transform: [
                       {
@@ -146,14 +151,19 @@ export default function CustomSuccessPopup({
                   },
                 ]}
               >
-                <AntDesign name="check" size={32} color="#fff" />
+                <AntDesign 
+                  name={type === 'error' ? 'close' : 'check'} 
+                  size={32} 
+                  color="#fff" 
+                />
               </Animated.View>
             </View>
             
-            {/* Success ring animation */}
+            {/* Ring animation */}
             <Animated.View
               style={[
-                styles.successRing,
+                styles.ring,
+                type === 'error' ? styles.errorRing : styles.successRing,
                 {
                   opacity: checkmarkAnim,
                   transform: [
@@ -251,14 +261,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     position: 'relative',
   },
-  checkmarkCircle: {
+  iconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#00C853',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#00C853',
     shadowOffset: {
       width: 0,
       height: 5,
@@ -267,20 +275,33 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
-  checkmark: {
+  successCircle: {
+    backgroundColor: '#00C853',
+    shadowColor: '#00C853',
+  },
+  errorCircle: {
+    backgroundColor: '#F44336',
+    shadowColor: '#F44336',
+  },
+  icon: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  successRing: {
+  ring: {
     position: 'absolute',
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 2,
-    borderColor: '#00C853',
     top: -10,
     left: -10,
     opacity: 0.3,
+  },
+  successRing: {
+    borderColor: '#00C853',
+  },
+  errorRing: {
+    borderColor: '#F44336',
   },
   title: {
     fontSize: 24,
