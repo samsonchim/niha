@@ -1,7 +1,10 @@
+import CustomSuccessPopup from '@/components/ui/CustomSuccessPopup';
 import API_CONFIG from '@/constants/ApiConfig';
 import { AntDesign } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -16,6 +19,8 @@ export default function BVNScreen() {
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState({ firstName: '', lastName: '' });
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
 
   // Get user data from navigation params or previous screens
   React.useEffect(() => {
@@ -44,6 +49,12 @@ export default function BVNScreen() {
 
     setLoading(true);
     try {
+      console.log('🔄 Creating virtual account...', {
+        email: userEmail,
+        firstName: userName.firstName,
+        lastName: userName.lastName
+      });
+
       const response = await axios.post(API_CONFIG.URLS.CREATE_VIRTUAL_ACCOUNT, {
         email: userEmail,
         bvn: bvn,
@@ -51,35 +62,51 @@ export default function BVNScreen() {
         lastName: userName.lastName
       });
 
+      console.log('📡 DVA Response:', response.data);
+
       if (response.data.success) {
         const isMockAccount = response.data.data.isMockAccount;
-        const mockText = isMockAccount ? ' (Development Mode)' : '';
         const isExisting = response.data.message.includes('already exists');
         
-        Alert.alert(
-          'Success!',
-          isExisting 
-            ? `Your virtual account is ready!\n\nAccount Number: ${response.data.data.accountNumber}\nBank: ${response.data.data.bankName}`
-            : `Virtual account created successfully!${mockText}\n\nAccount Number: ${response.data.data.accountNumber}\nBank: ${response.data.data.bankName}${isMockAccount ? '\n\n📝 This is a mock account for development. Your app is ready for real Flutterwave integration.' : ''}`,
-          [
-            {
-              text: 'Continue',
-              onPress: () => navigation.navigate('(tabs)', {
-                user: {
-                  email: userEmail,
-                  firstName: userName.firstName,
-                  lastName: userName.lastName
-                },
-                virtualAccount: response.data.data
-              })
-            }
-          ]
-        );
+        // Prepare user session data
+        const userData = {
+          id: response.data.data.userId,
+          email: userEmail,
+          firstName: userName.firstName,
+          lastName: userName.lastName,
+          virtualAccount: response.data.data,
+          isAuthenticated: true,
+          authTimestamp: new Date().toISOString()
+        };
+        
+        // Store user session in AsyncStorage
+        console.log('💾 Storing user session data...');
+        await AsyncStorage.setItem('userSession', JSON.stringify(userData));
+        await AsyncStorage.setItem('isLoggedIn', 'true');
+        
+        console.log('✅ User session stored successfully');
+        
+        // Store success data for popup
+        setSuccessData({
+          user: {
+            id: response.data.data.userId,
+            email: userEmail,
+            firstName: userName.firstName,
+            lastName: userName.lastName
+          },
+          virtualAccount: response.data.data,
+          isMockAccount,
+          isExisting
+        });
+
+        // Show custom success popup
+        setShowSuccessPopup(true);
       } else {
+        console.error('❌ DVA creation failed:', response.data.message);
         Alert.alert('Error', response.data.message || 'Failed to create virtual account');
       }
     } catch (error: any) {
-      console.error('Virtual account creation error:', error);
+      console.error('❌ Virtual account creation error:', error);
       
       let errorMessage = 'Something went wrong. Please try again.';
       
@@ -97,6 +124,50 @@ export default function BVNScreen() {
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSuccessPopupContinue = async () => {
+    setShowSuccessPopup(false);
+    
+    if (successData) {
+      console.log('🚀 Navigating to seed phrase screen with data:', successData.user);
+      
+      // Double-check that user session is stored
+      try {
+        const storedSession = await AsyncStorage.getItem('userSession');
+        if (storedSession) {
+          console.log('✅ User session confirmed in storage');
+        } else {
+          console.warn('⚠️ No user session found, storing again...');
+          const userData = {
+            id: successData.user.id,
+            email: successData.user.email,
+            firstName: successData.user.firstName,
+            lastName: successData.user.lastName,
+            virtualAccount: successData.virtualAccount,
+            isAuthenticated: true,
+            authTimestamp: new Date().toISOString()
+          };
+          await AsyncStorage.setItem('userSession', JSON.stringify(userData));
+          await AsyncStorage.setItem('isLoggedIn', 'true');
+        }
+      } catch (error) {
+        console.error('❌ Error checking user session:', error);
+      }
+      
+      // Use router.push for better navigation control
+      router.push({
+        pathname: '/auth/seed-phrase',
+        params: {
+          userId: successData.user.id,
+          userEmail: successData.user.email,
+          firstName: successData.user.firstName,
+          lastName: successData.user.lastName,
+          accountNumber: successData.virtualAccount.accountNumber,
+          bankName: successData.virtualAccount.bankName
+        }
+      });
     }
   };
 
@@ -158,6 +229,21 @@ export default function BVNScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Custom Success Popup */}
+      <CustomSuccessPopup
+        visible={showSuccessPopup}
+        title="Account Created Successfully! 🎉"
+        message={successData ? 
+          `Your virtual account is ready!\n\nAccount Number: ${successData.virtualAccount.accountNumber}\nBank: ${successData.virtualAccount.bankName}\n\n🔐 Next: Secure your crypto wallets with your seed phrase backup.`
+          : ''
+        }
+        buttonText="Continue to Seed Phrase"
+        onButtonPress={handleSuccessPopupContinue}
+        onClose={() => setShowSuccessPopup(false)}
+        showCloseButton={false}
+        showCancelButton={true}
+      />
     </View>
   );
 }

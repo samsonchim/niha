@@ -28,6 +28,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth/index" options={{ headerShown: false }} />
         <Stack.Screen name="auth/otp" options={{ headerShown: false }} />
         <Stack.Screen name="auth/bvn" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/seed-phrase" options={{ headerShown: false }} />
         <Stack.Screen name="auth/signin" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="screens/transaction-history" options={{ headerShown: false }} />

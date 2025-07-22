@@ -1,7 +1,10 @@
+import CustomSuccessPopup from '@/components/ui/CustomSuccessPopup';
 import API_CONFIG from '@/constants/ApiConfig';
 import { AntDesign } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -15,6 +18,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [loginData, setLoginData] = useState<any>(null);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -24,41 +29,38 @@ export default function SignInScreen() {
 
     setLoading(true);
     try {
+      console.log('🔐 Attempting login for:', email);
+      
       const response = await axios.post(API_CONFIG.URLS.LOGIN, {
         email: email.trim().toLowerCase(),
         password: password
       });
 
+      console.log('📡 Login response:', response.data);
+
       if (response.data.success) {
         const { user, hasVirtualAccount, virtualAccount } = response.data.data;
         
-        Alert.alert(
-          'Welcome back!',
-          `Hello ${user.firstName}! ${hasVirtualAccount ? 'Your account is ready.' : 'Complete your setup by adding your BVN.'}`,
-          [
-            {
-              text: 'Continue',
-              onPress: () => {
-                if (hasVirtualAccount) {
-                  // Navigate to main app
-                  navigation.navigate('(tabs)', { user, virtualAccount });
-                } else {
-                  // Navigate to BVN setup
-                  navigation.navigate('auth/bvn', {
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName
-                  });
-                }
-              }
-            }
-          ]
-        );
+        // Store user data in AsyncStorage for the wallet screen
+        await AsyncStorage.setItem('user', JSON.stringify(user));
+        console.log('💾 User data saved to AsyncStorage');
+        
+        // Store login data for popup
+        setLoginData({
+          user,
+          hasVirtualAccount,
+          virtualAccount
+        });
+        
+        // Show custom success popup
+        setShowSuccessPopup(true);
+        
       } else {
+        console.error('❌ Login failed:', response.data.message);
         Alert.alert('Login Failed', response.data.message);
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       
       let errorMessage = 'Something went wrong. Please try again.';
       
@@ -89,6 +91,34 @@ export default function SignInScreen() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSuccessPopupContinue = () => {
+    setShowSuccessPopup(false);
+    
+    if (loginData) {
+      const { user, hasVirtualAccount, virtualAccount } = loginData;
+      
+      console.log('🚀 Continuing after login success popup');
+      console.log('👤 User has virtual account:', hasVirtualAccount);
+      
+      if (hasVirtualAccount) {
+        // Navigate to main app (wallet screen)
+        console.log('📱 Navigating to main app');
+        router.replace('/(tabs)');
+      } else {
+        // Navigate to BVN setup
+        console.log('🏦 Navigating to BVN setup');
+        router.push({
+          pathname: '/auth/bvn',
+          params: {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName
+          }
+        });
+      }
     }
   };
 
@@ -175,6 +205,21 @@ export default function SignInScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Custom Success Popup */}
+      <CustomSuccessPopup
+        visible={showSuccessPopup}
+        title="Welcome back! 🎉"
+        message={loginData ? 
+          `Hello ${loginData.user.firstName}!\n\n${loginData.hasVirtualAccount ? 'Your account is ready. Let\'s check your wallets!' : 'Complete your setup by adding your BVN to unlock all features.'}`
+          : ''
+        }
+        buttonText={loginData?.hasVirtualAccount ? "View My Wallets" : "Complete Setup"}
+        onButtonPress={handleSuccessPopupContinue}
+        onClose={() => setShowSuccessPopup(false)}
+        showCloseButton={false}
+        showCancelButton={true}
+      />
     </View>
   );
 }

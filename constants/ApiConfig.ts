@@ -1,7 +1,7 @@
 // API Configuration
 const API_CONFIG = {
   // Base URL for your API
-  BASE_URL: 'https://f142675f2ac4.ngrok-free.app',
+  BASE_URL: ' https://975601a12c38.ngrok-free.app',
   
   // API Endpoints
   ENDPOINTS: {
@@ -11,6 +11,8 @@ const API_CONFIG = {
     VERIFY_STATUS: '/api/verify-status',
     CREATE_VIRTUAL_ACCOUNT: '/api/create-virtual-account',
     FIAT_ACCOUNT: '/api/fiat-account',
+    GET_SEED_PHRASE: '/api/get-seed-phrase',
+    USER_WALLETS: '/api/user-wallets',
     FORGOT_PASSWORD: '/api/forgot-password',
     RESET_PASSWORD: '/api/reset-password',
     PROFILE: '/api/profile',
@@ -29,6 +31,8 @@ const API_CONFIG = {
     get VERIFY_STATUS() { return `${API_CONFIG.BASE_URL}/api/verify-status`; },
     get CREATE_VIRTUAL_ACCOUNT() { return `${API_CONFIG.BASE_URL}/api/create-virtual-account`; },
     get FIAT_ACCOUNT() { return `${API_CONFIG.BASE_URL}/api/fiat-account`; },
+    get GET_SEED_PHRASE() { return `${API_CONFIG.BASE_URL}/api/get-seed-phrase`; },
+    get USER_WALLETS() { return `${API_CONFIG.BASE_URL}/api/user-wallets`; },
     get FORGOT_PASSWORD() { return `${API_CONFIG.BASE_URL}/api/forgot-password`; },
     get RESET_PASSWORD() { return `${API_CONFIG.BASE_URL}/api/reset-password`; },
     get PROFILE() { return `${API_CONFIG.BASE_URL}/api/profile`; },

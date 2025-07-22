@@ -1,8 +1,9 @@
 import { CopyToClipboard } from '@/components/ui/CopyToClipboard';
 import { FontAwesome } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 
@@ -11,151 +12,194 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 interface Wallet {
-  id: string;
-  name: string;
   symbol: string;
-  balance: string;
-  usdValue: string;
+  name: string;
+  network: string;
   address: string;
+  balance?: string;
+  usdValue?: string;
   icon: string;
   category: 'Crypto' | 'Fiat';
+  createdAt: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
 }
 
 const ICONS: Record<string, any> = {
-  btc: require('@/assets/images/icons/bitcoin.png'),
-  ethereum: require('@/assets/images/icons/etherum.png'), 
-  bnb: require('@/assets/images/icons/bnb.png'),
-  solana: require('@/assets/images/icons/solana.png'),
-  usdt: require('@/assets/images/icons/usdt.png'),
-  usdc: require('@/assets/images/icons/usdc.png'),
-  polygon: require('@/assets/images/icons/matic.png'), 
-  tron: require('@/assets/images/icons/tron.png'),
-  dai: require('@/assets/images/icons/dai.png'),
-  doge: require('@/assets/images/icons/doge.png'),
+  BTC: require('@/assets/images/icons/bitcoin.png'),
+  ETH: require('@/assets/images/icons/etherum.png'), 
+  BNB: require('@/assets/images/icons/bnb.png'),
+  SOL: require('@/assets/images/icons/solana.png'),
+  USDT: require('@/assets/images/icons/usdt.png'),
+  USDC: require('@/assets/images/icons/usdc.png'),
+  MATIC: require('@/assets/images/icons/matic.png'), 
+  TRX: require('@/assets/images/icons/tron.png'),
+  DAI: require('@/assets/images/icons/dai.png'),
+  DOGE: require('@/assets/images/icons/doge.png'),
 };
 
 
-
-const walletData: Wallet[] = [
-  {
-    id: '1',
-    name: 'BTC',
-    symbol: 'Bitcoin',
-    balance: '0.08',
-    usdValue: '$3,314',
-    address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-    icon: 'btc',
-    category: 'Crypto',
-  },
-  {
-    id: '2',
-    name: 'ETHEREUM',
-    symbol: 'Ethereum',
-    balance: '0.08',
-    usdValue: '$314',
-    address: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
-    icon: 'ethereum',
-    category: 'Crypto',
-  },
-  {
-    id: '3',
-    name: 'BNB',
-    symbol: 'BNB',
-    balance: '0.08',
-    usdValue: '$45.14',
-    address: 'bnb136ns6lfw4zs5hg4n85vdthaad7hq5m4gtkgf23',
-    icon: 'bnb',
-    category: 'Crypto',
-  },
-  {
-    id: '4',
-    name: 'SOLANA',
-    symbol: 'Solana',
-    balance: '0.08',
-    usdValue: '$43.14',
-    address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
-    icon: 'solana',
-    category: 'Crypto',
-  },
-  {
-    id: '5',
-    name: 'USDT',
-    symbol: 'Tether',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: '0x55d398326f99059fF775485246999027B3197955',
-    icon: 'usdt',
-    category: 'Crypto',
-  },
-  {
-    id: '6',
-    name: 'USDT',
-    symbol: 'Ethereum',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    icon: 'usdt',
-    category: 'Crypto',
-  },
-  {
-    id: '7',
-    name: 'USDC',
-    symbol: 'Ethereum',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: '0xA0b86a33E6411a3456d7b9Dc24D66E9f2e7Bb0A4',
-    icon: 'usdc',
-    category: 'Crypto',
-  },
-  {
-    id: '8',
-    name: 'POLYGON',
-    symbol: 'Polygon',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: '0x0000000000000000000000000000000000001010',
-    icon: 'polygon',
-    category: 'Crypto',
-  },
-  {
-    id: '9',
-    name: 'TRON',
-    symbol: 'Tron',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7',
-    icon: 'tron',
-    category: 'Crypto',
-  },
-  {
-    id: '10',
-    name: 'Dai',
-    symbol: 'Dai',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-    icon: 'dai',
-    category: 'Crypto',
-  },
-  {
-    id: '11',
-    name: 'Doge',
-    symbol: 'Dogecoin',
-    balance: '0.08',
-    usdValue: '$0.08',
-    address: 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L',
-    icon: 'doge',
-    category: 'Crypto',
-  },
-];
 
 type FilterType = 'Crypto' | 'Fiat';
 
 export default function WalletsScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('Crypto');
   const [showFiatModal, setShowFiatModal] = useState(false);
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredWallets = walletData.filter(wallet => 
+  // Load user data and wallets on component mount
+  useEffect(() => {
+    loadUserAndWallets();
+  }, []);
+
+  const loadUserAndWallets = async () => {
+    try {
+      // Get user data from AsyncStorage
+      const userData = await AsyncStorage.getItem('user');
+      console.log('📱 User data from AsyncStorage:', userData);
+      
+      if (!userData) {
+        console.log('❌ No user data found, redirecting to auth');
+        Alert.alert('Error', 'Please log in to view your wallets');
+        router.replace('/auth');
+        return;
+      }
+
+      const parsedUser = JSON.parse(userData);
+      console.log('👤 Parsed user:', parsedUser);
+      setUser(parsedUser);
+
+      // Fetch user's wallets from API
+      await fetchUserWallets(parsedUser.id);
+    } catch (error) {
+      console.error('❌ Error loading user data:', error);
+      Alert.alert('Error', 'Failed to load user data');
+    }
+  };
+
+  const fetchUserWallets = async (userId: string) => {
+    try {
+      setLoading(true);
+      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL}/user-wallets/${userId}`;
+      console.log('🔍 Fetching wallets from:', apiUrl);
+      console.log('👤 User ID:', userId);
+      
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      
+      console.log('📡 API Response:', data);
+
+      if (data.success) {
+        // Convert API wallet data to component format
+        const formattedWallets: Wallet[] = Object.values(data.data.wallets).map((wallet: any) => ({
+          symbol: wallet.symbol,
+          name: wallet.name,
+          network: wallet.network,
+          address: wallet.address,
+          balance: '0.00', // Will be fetched from blockchain
+          usdValue: '$0.00', // Will be calculated
+          icon: wallet.symbol,
+          category: 'Crypto' as const,
+          createdAt: wallet.createdAt
+        }));
+
+        console.log('💰 Formatted wallets:', formattedWallets);
+        setWallets(formattedWallets);
+        
+        // Fetch real balances for each wallet (optional - in background)
+        fetchWalletBalances(formattedWallets);
+      } else {
+        console.log('⚠️ API returned error:', data.message);
+        if (data.message?.includes('No wallets found')) {
+          setWallets([]);
+        } else {
+          throw new Error(data.message);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching wallets:', error);
+      Alert.alert('Error', `Failed to load wallets: ${error.message}. Check console for details.`);
+      setWallets([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch real-time wallet balances
+  const fetchWalletBalances = async (walletList: Wallet[]) => {
+    try {
+      console.log('🔄 Fetching wallet balances...');
+      
+      // For now, use mock balances - you can uncomment the real fetcher later
+      // when you have API keys set up
+      
+      // Mock balance update (remove this when using real API)
+      setTimeout(() => {
+        setWallets(prevWallets => 
+          prevWallets.map(wallet => ({
+            ...wallet,
+            balance: (Math.random() * 0.1).toFixed(6), // Random small balance
+            usdValue: `$${(Math.random() * 100).toFixed(2)}` // Random USD value
+          }))
+        );
+        console.log('✅ Mock wallet balances updated');
+      }, 2000);
+      
+      // Uncomment below to use real balance fetcher
+      /*
+      for (let i = 0; i < walletList.length; i++) {
+        const wallet = walletList[i];
+        
+        try {
+          const balanceResult = await WalletBalanceFetcher.getWalletBalance(
+            wallet.address, 
+            wallet.symbol, 
+            wallet.network
+          );
+          
+          if (balanceResult.success) {
+            setWallets(prevWallets => 
+              prevWallets.map(w => 
+                w.address === wallet.address 
+                  ? { ...w, balance: balanceResult.balance, usdValue: balanceResult.usdValue }
+                  : w
+              )
+            );
+          }
+        } catch (error) {
+          console.error(`Failed to fetch balance for ${wallet.symbol}:`, error);
+        }
+        
+        // Add delay between requests to avoid rate limiting
+        if (i < walletList.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      */
+      
+    } catch (error) {
+      console.error('Error fetching wallet balances:', error);
+    }
+  };
+
+  // Function to refresh wallets
+  const handleRefresh = async () => {
+    if (user) {
+      setRefreshing(true);
+      await fetchUserWallets(user.id);
+    }
+  };
+
+  const filteredWallets = wallets.filter(wallet => 
     wallet.category === selectedFilter
   );
 
@@ -179,27 +223,65 @@ export default function WalletsScreen() {
       params: {
         name: wallet.name,
         symbol: wallet.symbol,
-        balance: wallet.balance,
-        usdValue: wallet.usdValue,
+        balance: wallet.balance || '0.00',
+        usdValue: wallet.usdValue || '$0.00',
         icon: wallet.icon,
         address: wallet.address,
       },
     });
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Wallets</Text>
+          <TouchableOpacity activeOpacity={0.7}>
+            <View style={styles.qrContainer}>
+              <Image
+                source={require('@/assets/images/icons/qr-scanner.png')}
+                style={{ width: 24, height: 24, tintColor: '#00C853' }}
+                resizeMode="contain"
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#00C853" />
+          <Text style={styles.loadingText}>Loading your wallets...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Wallets</Text>
-        <TouchableOpacity activeOpacity={0.7}>
-          <View style={styles.qrContainer}>
-            <Image
-              source={require('@/assets/images/icons/qr-scanner.png')}
-              style={{ width: 24, height: 24, tintColor: '#00C853' }}
-              resizeMode="contain"
-            />
-          </View>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          {user && (
+            <Text style={styles.userWelcome}>Hi, {user.firstName}</Text>
+          )}
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={handleRefresh}
+            disabled={refreshing}
+          >
+            <View style={styles.qrContainer}>
+              {refreshing ? (
+                <ActivityIndicator size="small" color="#00C853" />
+              ) : (
+                <Image
+                  source={require('@/assets/images/icons/qr-scanner.png')}
+                  style={{ width: 24, height: 24, tintColor: '#00C853' }}
+                  resizeMode="contain"
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.filterContainer}>
@@ -217,48 +299,81 @@ export default function WalletsScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {filteredWallets.map((wallet) => (
-          <TouchableOpacity 
-            key={wallet.id} 
-            style={styles.walletItem}
-            onPress={() => handleWalletPress(wallet)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              <Image
-                source={ICONS[wallet.icon] || ICONS['btc']}
-                style={styles.coinIcon}
-              />
-            </View>
-
-            <View style={styles.walletInfo}>
-              <View style={styles.topRow}>
-                <Text style={styles.coinName}>{wallet.name}</Text>
-                <Text style={styles.balance}>{wallet.balance}</Text>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#00C853']}
+            tintColor="#00C853"
+          />
+        }
+      >
+        {filteredWallets.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>No Wallets Found</Text>
+            <Text style={styles.emptyStateText}>
+              {selectedFilter === 'Crypto' 
+                ? 'You don\'t have any crypto wallets yet. Complete your account setup to generate wallets.'
+                : 'No fiat accounts available.'
+              }
+            </Text>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefresh}
+              disabled={refreshing}
+            >
+              <Text style={styles.refreshButtonText}>
+                {refreshing ? 'Refreshing...' : 'Refresh Wallets'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          filteredWallets.map((wallet, index) => (
+            <TouchableOpacity 
+              key={`${wallet.symbol}-${index}`}
+              style={styles.walletItem}
+              onPress={() => handleWalletPress(wallet)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.iconContainer}>
+                <Image
+                  source={ICONS[wallet.icon] || ICONS['BTC']}
+                  style={styles.coinIcon}
+                />
               </View>
 
-              <View style={styles.bottomRow}>
-                <View style={styles.networkBadge}>
-                  <Text style={styles.networkText}>{wallet.symbol}</Text>
+              <View style={styles.walletInfo}>
+                <View style={styles.topRow}>
+                  <Text style={styles.coinName}>{wallet.symbol}</Text>
+                  <Text style={styles.balance}>{wallet.balance || '0.00'}</Text>
                 </View>
-                <Text style={styles.usdValue}>{wallet.usdValue}</Text>
-              </View>
 
-              <View style={styles.addressRow}>
-                <Text style={styles.address} numberOfLines={1}>{wallet.address}</Text>
-                <TouchableOpacity 
-                  onPress={(e) => {
-                    e.stopPropagation(); // Prevent wallet navigation when copy is pressed
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <CopyToClipboard text={wallet.address} />
-                </TouchableOpacity>
+                <View style={styles.bottomRow}>
+                  <View style={styles.networkBadge}>
+                    <Text style={styles.networkText}>{wallet.network}</Text>
+                  </View>
+                  <Text style={styles.usdValue}>{wallet.usdValue || '$0.00'}</Text>
+                </View>
+
+                <View style={styles.addressRow}>
+                  <Text style={styles.address} numberOfLines={1}>{wallet.address}</Text>
+                  <TouchableOpacity 
+                    onPress={(e) => {
+                      e.stopPropagation(); // Prevent wallet navigation when copy is pressed
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <CopyToClipboard text={wallet.address} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       {/* Fiat Virtual Account Modal */}
@@ -354,6 +469,62 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 20,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userWelcome: {
+    color: '#888',
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  loadingText: {
+    color: '#888',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    paddingVertical: 60,
+  },
+  emptyStateTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  emptyStateText: {
+    color: '#888',
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  refreshButton: {
+    backgroundColor: '#00C853',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
   },
   title: {
     color: '#fff',
