@@ -1,22 +1,3 @@
-import cors from 'cors';
-import 'dotenv/config';
-import express from 'express';
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get('/health', (_req, res) => res.json({ ok: true }));
-
-const port = Number(process.env.PORT || 3000);
-
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  // Bind to 0.0.0.0 so other devices on LAN (e.g., emulator/phone) can reach it via machine IP.
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`API listening on port ${port}. Access via http://<YOUR_MACHINE_IP>:${port}`);
-  });
-}
-
-// Export for Vercel serverless
-export default app;
+// Placeholder file: Express server removed for serverless migration.
+// If accidental imports reference this file, it now exports an empty object.
+export default {};

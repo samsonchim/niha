@@ -8,7 +8,25 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
   },
-  "include": ["src", "pages", "lib"]
+  "include": [
+    "src",
+    "pages",
+    "lib"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/routes"
+  ]
 }
