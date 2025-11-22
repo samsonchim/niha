@@ -15,7 +15,14 @@ app.use('/transfer', transfersRoute);
 app.use('/webhooks', webhookRoute);
 
 const port = Number(process.env.PORT || 3000);
-// Bind to 0.0.0.0 so other devices on LAN (e.g., emulator/phone) can reach it via machine IP.
-app.listen(port, '0.0.0.0', () => {
-  console.log(`API listening on port ${port}. Access via http://<YOUR_MACHINE_IP>:${port}`);
-});
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  // Bind to 0.0.0.0 so other devices on LAN (e.g., emulator/phone) can reach it via machine IP.
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`API listening on port ${port}. Access via http://<YOUR_MACHINE_IP>:${port}`);
+  });
+}
+
+// Export for Vercel serverless
+export default app;

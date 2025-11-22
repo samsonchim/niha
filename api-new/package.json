@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "vercel-build": "tsc -p ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
