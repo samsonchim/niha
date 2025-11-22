@@ -3,3 +3,5 @@ node_modules
 .env.local
 test-api.js
 dist
+src/server.ts
+src/routes/
