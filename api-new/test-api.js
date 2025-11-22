@@ -1,7 +1,8 @@
 // Quick Test Script for Backend APIs
 // Run with: node test-api.js
 
-const API_BASE = 'http://localhost:3000';
+// Local dev: run `vercel dev` (or `npm run dev` if configured) then use the serverless endpoints under /api
+const API_BASE = 'http://localhost:3000/api';
 
 // Test 1: Health Check
 async function testHealth() {
