@@ -4,10 +4,11 @@ import { ThemedTextInput } from '@/components/ThemedTextInput';
 import { ThemedView } from '@/components/ThemedView';
 import { API_BASE_URL } from '@/lib/config';
 import { supabase } from '@/lib/supabase';
-import { triggerOnboarding } from '@/services/backend';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, StyleSheet } from 'react-native';
+// Hardcoded onboarding endpoint as requested (bypass config + helper)
+const ONBOARDING_ENDPOINT = 'https://niha-psi.vercel.app/api/onboarding';
 
 export default function SignupScreen() {
   const [fullName, setFullName] = useState('');
@@ -30,8 +31,21 @@ export default function SignupScreen() {
       });
       if (error || !data.user) throw error || new Error('Signup failed');
 
-      // Trigger backend onboarding (DVA + crypto address) silently
-      await triggerOnboarding({ userId: data.user.id, email: email, fullName });
+      // Direct hardcoded request to production onboarding endpoint
+      try {
+        const resp = await fetch(ONBOARDING_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: data.user.id, email, fullName })
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error(`Onboarding failed (${resp.status}) ${text}`);
+        }
+      } catch (onbErr: any) {
+        console.warn('Hardcoded onboarding request failed:', onbErr?.message);
+        throw onbErr;
+      }
 
       Alert.alert('Success', 'Account created. Redirecting to dashboard...');
       router.replace('/');

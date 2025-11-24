@@ -1,7 +1,8 @@
 // Centralized backend URL configuration.
 // Change via `.env` using EXPO_PUBLIC_API_BASE_URL to affect the entire app.
+// Default to production API if env not provided.
 
-const RAW_API_BASE = (process.env.EXPO_PUBLIC_API_BASE_URL as string) || 'http://10.178.168.178:3000';
+const RAW_API_BASE = (process.env.EXPO_PUBLIC_API_BASE_URL as string) || 'https://niha-psi.vercel.app/api';
 
 // Normalize by removing any trailing slashes
 export const API_BASE_URL = RAW_API_BASE.replace(/\/+$/, '');
