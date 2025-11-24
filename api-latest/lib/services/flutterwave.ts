@@ -89,3 +89,29 @@ export async function getVirtualAccountBalance(accountNumber: string) {
     return { balance: 0, currency: 'NGN' };
   }
 }
+
+export async function getVirtualAccountTransactions(accountNumber: string, from?: string, to?: string) {
+  try {
+    const params: any = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    
+    const { data } = await client.get(`/virtual-account-numbers/${accountNumber}/transactions`, { params });
+    if (!data || !data.data) return [];
+    return data.data;
+  } catch (error: any) {
+    console.error('Flutterwave getVirtualAccountTransactions error:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+export async function verifyTransaction(txRef: string) {
+  try {
+    const { data } = await client.get(`/transactions/${txRef}/verify`);
+    if (!data || !data.data) throw new Error('Failed to verify transaction');
+    return data.data;
+  } catch (error: any) {
+    console.error('Flutterwave verifyTransaction error:', error.response?.data || error.message);
+    throw error;
+  }
+}
