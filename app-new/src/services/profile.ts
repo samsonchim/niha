@@ -3,7 +3,8 @@ import { supabase } from '@/lib/supabase';
 export interface UserProfile {
     id: string;
     email: string;
-    fullName?: string;
+    firstName?: string;
+    lastName?: string;
     dvaAccountNumber?: string;
     dvaBankName?: string;
     usdcAddress?: string;
@@ -13,7 +14,7 @@ export interface UserProfile {
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, dva_account_number, dva_bank_name, usdc_address, erc20_address')
+        .select('id, email, first_name, last_name, dva_account_number, dva_bank_name, usdc_address, erc20_address')
         .eq('id', userId)
         .single();
 
@@ -22,7 +23,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     return {
         id: data.id,
         email: data.email,
-        fullName: data.full_name,
+        firstName: data.first_name,
+        lastName: data.last_name,
         dvaAccountNumber: data.dva_account_number,
         dvaBankName: data.dva_bank_name,
         usdcAddress: data.usdc_address,

@@ -1,7 +1,0 @@
-node_modules
-.env
-.env.local
-test-api.js
-dist
-src/server.ts
-src/routes/

@@ -1,17 +1,15 @@
 import { supabase } from '@/lib/supabase';
 
 export async function getFiatBalance(userId: string): Promise<number> {
-  // Assumes a 'transactions' table with columns: user_id (uuid), type ('credit'|'debit'), amount (numeric)
+  // Fetch directly from profiles table fiat_balance column
   const { data, error } = await supabase
-    .from('transactions')
-    .select('amount, type')
-    .eq('user_id', userId);
+    .from('profiles')
+    .select('fiat_balance')
+    .eq('id', userId)
+    .single();
+  
   if (error || !data) return 0;
-  let balance = 0;
-  for (const t of data) {
-    balance += (t.type === 'credit' ? 1 : -1) * Number(t.amount || 0);
-  }
-  return balance;
+  return Number(data.fiat_balance || 0);
 }
 
 export async function getCryptoBalances(userId: string): Promise<{ symbol: string; amount: number; fiatValue: number }[]> {

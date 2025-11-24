@@ -91,6 +91,17 @@ export default function Dashboard() {
       >
         <ThemedText type="title" style={styles.title}>Dashboard</ThemedText>
 
+        {/* User Info */}
+        {profile && (
+          <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
+            <ThemedText style={styles.label}>User Information</ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.userName}>
+              {profile.firstName && profile.lastName ? `${profile.firstName} ${profile.lastName}` : 'User'}
+            </ThemedText>
+            <ThemedText style={styles.userEmail}>{profile.email}</ThemedText>
+          </View>
+        )}
+
         {/* DVA Account Details */}
         {profile?.dvaAccountNumber && (
           <View style={[styles.card, { backgroundColor: cardColor, borderColor: borderColor }]}>
@@ -176,6 +187,8 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 14, opacity: 0.7, marginBottom: 8, fontFamily: 'Poppins-Regular' },
   value: { fontSize: 32, fontFamily: 'Poppins-Bold' },
+  userName: { fontSize: 20, fontFamily: 'Poppins-Bold', marginBottom: 4 },
+  userEmail: { fontSize: 14, opacity: 0.7, fontFamily: 'Poppins-Regular' },
   accountNumber: { fontSize: 24, fontFamily: 'Poppins-Bold', marginBottom: 4 },
   bankName: { fontSize: 16, opacity: 0.8, fontFamily: 'Poppins-Regular' },
   address: { fontSize: 12, fontFamily: 'Courier', marginTop: 4, marginBottom: 4 },

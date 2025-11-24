@@ -8,16 +8,17 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, StyleSheet } from 'react-native';
 // Hardcoded onboarding endpoint as requested (bypass config + helper)
-const ONBOARDING_ENDPOINT = 'https://niha-psi.vercel.app/api/onboarding';
+const ONBOARDING_ENDPOINT = API_BASE_URL + '/onboarding';
 
 export default function SignupScreen() {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const onSignup = async () => {
-    if (!email || !password || !fullName) return Alert.alert('Please fill in all fields');
+    if (!email || !password || !firstName || !lastName) return Alert.alert('Please fill in all fields');
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -25,7 +26,8 @@ export default function SignupScreen() {
         password,
         options: {
           data: {
-            full_name: fullName,
+            first_name: firstName,
+            last_name: lastName,
           }
         }
       });
@@ -36,7 +38,7 @@ export default function SignupScreen() {
         const resp = await fetch(ONBOARDING_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: data.user.id, email, fullName })
+          body: JSON.stringify({ userId: data.user.id, email, firstName, lastName })
         });
         if (!resp.ok) {
           const text = await resp.text();
@@ -69,10 +71,17 @@ export default function SignupScreen() {
 
       <ThemedTextInput
         style={styles.input}
-        placeholder="Full Name"
+        placeholder="First Name"
         autoCapitalize="words"
-        value={fullName}
-        onChangeText={setFullName}
+        value={firstName}
+        onChangeText={setFirstName}
+      />
+      <ThemedTextInput
+        style={styles.input}
+        placeholder="Last Name"
+        autoCapitalize="words"
+        value={lastName}
+        onChangeText={setLastName}
       />
       <ThemedTextInput
         style={styles.input}
@@ -96,6 +105,12 @@ export default function SignupScreen() {
         loading={loading}
         style={styles.button}
       />
+
+      <ThemedButton
+        title="Login"
+        onPress={() => router.push('/auth/login')}
+        style={[styles.button, styles.loginButton]}
+      />
     </ThemedView>
   );
 }
@@ -107,4 +122,5 @@ const styles = StyleSheet.create({
   subtitle: { marginBottom: 32, opacity: 0.7 },
   input: { marginBottom: 16 },
   button: { marginTop: 8 },
+  loginButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#007AFF' },
 });
