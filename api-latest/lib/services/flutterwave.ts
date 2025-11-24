@@ -4,6 +4,7 @@ import 'dotenv/config';
 const baseURL = process.env.FLUTTERWAVE_BASE_URL || 'https://api.flutterwave.com/v3';
 const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
 const bvn = process.env.BVN_FOR_DVA;
+const defaultPhone = process.env.DEFAULT_CUSTOMER_PHONE || '08000000000';
 
 if (!secretKey) {
   console.warn('FLUTTERWAVE_SECRET_KEY missing');
@@ -17,20 +18,23 @@ const client = axios.create({
   }
 });
 
-export async function createDedicatedVirtualAccount(userId: string, email: string, firstName?: string, lastName?: string) {
+export async function createDedicatedVirtualAccount(userId: string, email: string, firstName?: string, lastName?: string, phone?: string) {
   const fullName = firstName && lastName ? `${firstName} ${lastName}` : email;
-  const accountName = `${fullName} - NIHA FLW`;
+  const accountName = `${firstName || 'User'} ${lastName || 'Account'} NIHA FLW`;
 
   const payload: any = {
     email,
     is_permanent: true,
     tx_ref: `onboard-${userId}-${Date.now()}`,
-    // Help FW associate the virtual account to the supplied user name
     firstname: firstName || 'User',
     lastname: lastName || 'Account',
-    name: accountName,
-    customer: { name: accountName }
+    phonenumber: phone || defaultPhone,
+    narration: fullName,
+    account_name: accountName,
+    bvn,
+    metadata: { userId }
   };
+  if (!bvn) delete payload.bvn; // only send if available
   if (bvn) payload.bvn = bvn;
   try {
     const { data } = await client.post('/virtual-account-numbers', payload);

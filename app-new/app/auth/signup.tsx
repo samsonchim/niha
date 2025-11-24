@@ -14,6 +14,7 @@ export default function SignupScreen() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +39,7 @@ export default function SignupScreen() {
         const resp = await fetch(ONBOARDING_ENDPOINT, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: data.user.id, email, firstName, lastName })
+          body: JSON.stringify({ userId: data.user.id, email, firstName, lastName, phone })
         });
         if (!resp.ok) {
           const text = await resp.text();
@@ -90,6 +91,13 @@ export default function SignupScreen() {
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
+      />
+      <ThemedTextInput
+        style={styles.input}
+        placeholder="Phone (e.g. 08012345678)"
+        keyboardType="phone-pad"
+        value={phone}
+        onChangeText={setPhone}
       />
       <ThemedTextInput
         style={styles.input}
