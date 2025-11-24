@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { checkUnresolvedTransactions } from '../../lib/services/webhook';
 import { supabase } from '../../lib/services/supabase';
+import { checkUnresolvedTransactions } from '../../lib/services/webhook';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -9,12 +9,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Get all profiles with DVA accounts
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id, email, dva_account_number, firstname, lastname')
+      .select('id, email, dva_account_number, first_name, last_name')
       .not('dva_account_number', 'is', null);
 
     if (error) {
       console.error('[Sync All] Error fetching profiles:', error);
-      return res.status(500).json({ error: 'Failed to fetch profiles' });
+      return res.status(500).json({ error: 'Failed to fetch profiles', details: error });
     }
 
     if (!profiles || profiles.length === 0) {
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         results.push({
           userId: profile.id,
           email: profile.email,
-          name: `${profile.firstname || ''} ${profile.lastname || ''}`.trim(),
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
           processed: result.processed
         });
 

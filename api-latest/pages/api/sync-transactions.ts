@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { checkUnresolvedTransactions } from '../../lib/services/webhook';
 import { supabase } from '../../lib/services/supabase';
+import { checkUnresolvedTransactions } from '../../lib/services/webhook';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

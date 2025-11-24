@@ -1,4 +1,4 @@
-import { verifyFlutterwaveSignature, getVirtualAccountTransactions } from './flutterwave';
+import { getVirtualAccountTransactions, verifyFlutterwaveSignature } from './flutterwave';
 import { insertTransaction, supabase, upsertCryptoBalance } from './supabase';
 
 export async function handleFlutterwaveWebhook(headers: any, rawBody: string, parsed: any) {
