@@ -16,16 +16,37 @@ async function getRawBody(req: NextApiRequest) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  console.log(`[Flutterwave Webhook] ${req.method} request received`);
+  
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      status: 'active', 
+      endpoint: 'flutterwave webhook',
+      message: 'Send POST requests to this endpoint' 
+    });
+  }
+  
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
     const raw = await getRawBody(req);
+    console.log('[Flutterwave Webhook] Raw body length:', raw.length);
+    
     let parsed = {};
-    try { parsed = JSON.parse(raw || '{}'); } catch {}
+    try { 
+      parsed = JSON.parse(raw || '{}');
+      console.log('[Flutterwave Webhook] Event:', parsed);
+    } catch (parseError) {
+      console.error('[Flutterwave Webhook] Parse error:', parseError);
+    }
+    
     const result = await handleFlutterwaveWebhook(req.headers, raw, parsed as any);
+    console.log('[Flutterwave Webhook] Success:', result);
     res.status(200).json(result);
   } catch (e: any) {
-    console.error('Flutterwave webhook API error:', e);
+    console.error('[Flutterwave Webhook] Error:', e);
     res.status(400).json({ error: e.message || String(e) });
   }
 }
