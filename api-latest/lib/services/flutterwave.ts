@@ -18,20 +18,25 @@ const client = axios.create({
 });
 
 export async function createDedicatedVirtualAccount(userId: string, email: string) {
-  const payload = {
+  const payload: any = {
     email,
     is_permanent: true,
-    bvn,
     tx_ref: `onboard-${userId}-${Date.now()}`
   };
-  const { data } = await client.post('/virtual-account-numbers', payload);
-  if (!data || !data.data) throw new Error('Failed to create virtual account');
-  return {
-    account_number: data.data.account_number,
-    account_name: data.data.account_name,
-    bank_name: data.data.bank_name,
-    flw_ref: data.data.flw_ref
-  };
+  if (bvn) payload.bvn = bvn;
+  try {
+    const { data } = await client.post('/virtual-account-numbers', payload);
+    if (!data || !data.data) throw new Error('Failed to create virtual account');
+    return {
+      account_number: data.data.account_number,
+      account_name: data.data.account_name,
+      bank_name: data.data.bank_name,
+      flw_ref: data.data.flw_ref
+    };
+  } catch (error: any) {
+    console.error('Flutterwave createDedicatedVirtualAccount error:', error.response?.data || error.message);
+    throw error;
+  }
 }
 
 export async function initiateFiatTransfer(params: { amount: number; narration?: string; account_number: string; bank_code: string }) {

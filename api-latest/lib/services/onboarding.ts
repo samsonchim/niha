@@ -53,6 +53,7 @@ export async function runOnboarding(userId: string, email: string, fullName?: st
     };
   } catch (error: any) {
     console.error('Onboarding failed:', error.message);
+    console.error('Error details:', error.response?.data || error);
     throw new Error(`Onboarding failed: ${error.message}`);
   }
 }

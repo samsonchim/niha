@@ -48,6 +48,7 @@ export async function createDedicatedAddress(userName: string, userMetadata?: an
     };
   } catch (error: any) {
     console.error('BlockRadar createDedicatedAddress error:', error.response?.data || error.message);
+    console.error('Full error:', error);
     throw new Error(`Failed to create BlockRadar address: ${error.response?.data?.message || error.message}`);
   }
 }
