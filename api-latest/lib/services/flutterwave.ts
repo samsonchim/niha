@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 const baseURL = process.env.FLUTTERWAVE_BASE_URL || 'https://api.flutterwave.com/v3';
 const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
-const bvn = process.env.BVN_FOR_DVA || '2211903400';
+const bvn = process.env.BVN_FOR_DVA;
 
 if (!secretKey) {
   console.warn('FLUTTERWAVE_SECRET_KEY missing');
@@ -17,11 +17,19 @@ const client = axios.create({
   }
 });
 
-export async function createDedicatedVirtualAccount(userId: string, email: string) {
+export async function createDedicatedVirtualAccount(userId: string, email: string, firstName?: string, lastName?: string) {
+  const fullName = firstName && lastName ? `${firstName} ${lastName}` : email;
+  const accountName = `${fullName} - NIHA FLW`;
+
   const payload: any = {
     email,
     is_permanent: true,
-    tx_ref: `onboard-${userId}-${Date.now()}`
+    tx_ref: `onboard-${userId}-${Date.now()}`,
+    // Help FW associate the virtual account to the supplied user name
+    firstname: firstName || 'User',
+    lastname: lastName || 'Account',
+    name: accountName,
+    customer: { name: accountName }
   };
   if (bvn) payload.bvn = bvn;
   try {
@@ -29,7 +37,7 @@ export async function createDedicatedVirtualAccount(userId: string, email: strin
     if (!data || !data.data) throw new Error('Failed to create virtual account');
     return {
       account_number: data.data.account_number,
-      account_name: data.data.account_name,
+      account_name: data.data.account_name || accountName,
       bank_name: data.data.bank_name,
       flw_ref: data.data.flw_ref
     };
@@ -62,4 +70,18 @@ export function verifyFlutterwaveSignature(headers: any, rawBody: string): boole
     return true;
   }
   return expected === received;
+}
+
+export async function getVirtualAccountBalance(accountNumber: string) {
+  try {
+    const { data } = await client.get(`/virtual-account-numbers/${accountNumber}`);
+    if (!data || !data.data) throw new Error('Failed to get virtual account balance');
+    return {
+      balance: data.data.available_balance || 0,
+      currency: data.data.currency || 'NGN'
+    };
+  } catch (error: any) {
+    console.error('Flutterwave getVirtualAccountBalance error:', error.response?.data || error.message);
+    return { balance: 0, currency: 'NGN' };
+  }
 }

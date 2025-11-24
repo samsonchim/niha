@@ -35,12 +35,28 @@ export async function handleFlutterwaveWebhook(headers: any, rawBody: string, pa
       const profile = profiles && profiles[0];
       if (profile) {
         console.log(`Crediting user ${profile.id} (${profile.email}) with ${amount} NGN`);
+        
+        // Update fiat balance in profiles table
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('fiat_balance')
+          .eq('id', profile.id)
+          .single();
+        
+        const currentBalance = currentProfile?.fiat_balance || 0;
+        const newBalance = currentBalance + Number(amount);
+        
+        await supabase
+          .from('profiles')
+          .update({ fiat_balance: newBalance })
+          .eq('id', profile.id);
+        
         await insertTransaction(profile.id, 'credit', Number(amount), txId, {
           kind: 'dva_credit',
           customer,
           account_number
         });
-        console.log('Transaction recorded successfully');
+        console.log(`Transaction recorded successfully. New balance: ${newBalance} NGN`);
       } else {
         console.warn(`No profile found for DVA account ${account_number}`);
       }

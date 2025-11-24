@@ -2,17 +2,18 @@ import { createDedicatedAddress } from './blockradar';
 import { createDedicatedVirtualAccount } from './flutterwave';
 import { supabase } from './supabase';
 
-export async function runOnboarding(userId: string, email: string, fullName?: string) {
+export async function runOnboarding(userId: string, email: string, firstName?: string, lastName?: string) {
   console.log(`Starting onboarding for user ${userId} (${email})`);
 
   try {
     console.log('Creating Flutterwave DVA...');
-    const dva = await createDedicatedVirtualAccount(userId, email);
+    const dva = await createDedicatedVirtualAccount(userId, email, firstName, lastName);
     console.log(`DVA created: ${dva.account_number}`);
 
     console.log('Creating BlockRadar dedicated address...');
+    const fullName = firstName && lastName ? `${firstName} ${lastName}` : email;
     const cryptoAddress = await createDedicatedAddress(
-      fullName || email,
+      fullName,
       { userId, email }
     );
     console.log(`Crypto address created: ${cryptoAddress.address}`);
@@ -23,6 +24,8 @@ export async function runOnboarding(userId: string, email: string, fullName?: st
       .upsert({
         id: userId,
         email,
+        first_name: firstName,
+        last_name: lastName,
         dva_account_number: (dva as any).account_number,
         dva_bank_name: (dva as any).bank_name,
         dva_account_name: (dva as any).account_name,
